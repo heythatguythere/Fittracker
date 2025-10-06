@@ -1,0 +1,22 @@
+
+INSERT INTO exercises (name, category, muscle_group, description, created_at, updated_at) VALUES
+('Push-ups', 'Bodyweight', 'Chest', 'Classic bodyweight chest exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Pull-ups', 'Bodyweight', 'Back', 'Bodyweight back and bicep exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Squats', 'Bodyweight', 'Legs', 'Bodyweight leg exercise targeting quads and glutes', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Deadlift', 'Strength', 'Back', 'Compound movement targeting posterior chain', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Bench Press', 'Strength', 'Chest', 'Barbell chest press exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Overhead Press', 'Strength', 'Shoulders', 'Standing barbell shoulder press', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Barbell Row', 'Strength', 'Back', 'Bent-over barbell rowing exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Dumbbell Curls', 'Strength', 'Arms', 'Bicep isolation exercise with dumbbells', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Tricep Dips', 'Bodyweight', 'Arms', 'Bodyweight tricep exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Plank', 'Bodyweight', 'Core', 'Isometric core strengthening exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Running', 'Cardio', 'Full Body', 'Cardiovascular endurance exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Cycling', 'Cardio', 'Legs', 'Low-impact cardiovascular exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Lunges', 'Bodyweight', 'Legs', 'Single-leg strengthening exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Mountain Climbers', 'Cardio', 'Core', 'High-intensity cardio and core exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Burpees', 'Cardio', 'Full Body', 'Full-body high-intensity exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Lat Pulldown', 'Strength', 'Back', 'Cable exercise targeting latissimus dorsi', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Leg Press', 'Strength', 'Legs', 'Machine-based leg strengthening exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Shoulder Shrugs', 'Strength', 'Shoulders', 'Trapezius strengthening exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Calf Raises', 'Strength', 'Legs', 'Calf muscle strengthening exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Russian Twists', 'Bodyweight', 'Core', 'Rotational core strengthening exercise', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
