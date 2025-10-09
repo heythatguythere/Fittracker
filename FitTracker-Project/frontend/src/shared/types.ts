@@ -39,7 +39,7 @@ export const UserProfileSchema = z.object({
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 // Workout Schema
-export const WorkoutExerciseSchema = z.object({
+const WorkoutExerciseInlineSchema = z.object({
   exercise_name: z.string(),
   sets: z.number().nullable(),
   reps: z.number().nullable(),
@@ -54,7 +54,7 @@ export const WorkoutSchema = z.object({
   duration_minutes: z.number().nullable(),
   calories_burned: z.number().nullable(),
   workout_date: z.string(),
-  exercises: z.array(WorkoutExerciseSchema),
+  exercises: z.array(WorkoutExerciseInlineSchema),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
@@ -87,7 +87,7 @@ export const ExerciseSchema = z.object({
 
 export type Exercise = z.infer<typeof ExerciseSchema>;
 
-// Workout Exercise Schema
+// Workout Exercise Schema (detailed)
 export const WorkoutExerciseSchema = z.object({
   id: z.number().optional(),
   workout_id: z.number().optional(),

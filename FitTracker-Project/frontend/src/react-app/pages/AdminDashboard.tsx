@@ -32,7 +32,7 @@ export default function AdminDashboard() {
     const [activeView, setActiveView] = useState('dashboard'); 
     const [stats, setStats] = useState({ totalUsers: 0, totalWorkouts: 0, newUsersLast7Days: 0 });
     const [users, setUsers] = useState<User[]>([]);
-    const [loadingData, setLoadingData] = useState(true);
+    // Removed unused loadingData state
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -43,7 +43,6 @@ export default function AdminDashboard() {
 
         if (user && user.role === 'admin') {
             const fetchAdminData = async () => {
-                setLoadingData(true);
                 try {
                     const [statsRes, usersRes] = await Promise.all([
                         axios.get('/api/admin/stats', { withCredentials: true }),
@@ -53,8 +52,6 @@ export default function AdminDashboard() {
                     setUsers(usersRes.data);
                 } catch (error) {
                     console.error("Failed to fetch admin data:", error);
-                } finally {
-                    setLoadingData(false);
                 }
             };
             fetchAdminData();
@@ -120,7 +117,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="bg-white p-6 rounded-xl shadow-sm border">
                                     <h2 className="text-2xl font-semibold mb-4">Recent Registrations</h2>
-                                    <ul className="space-y-4">{users.slice(0, 5).map(u => <li key={u._id} className="flex items-center space-x-3"><img src={u.image || `https://ui-avatars.com/api/?name=${u.displayName || u.email}&background=E2E8F0&color=1A202C`} alt="avatar" className="h-10 w-10 rounded-full" /><div><p className="font-semibold">{u.displayName}</p><p className="text-sm text-gray-500">{u.email}</p></div></li>)}</ul>
+                                    <ul className="space-y-4">{users.slice(0, 5).map(u => <li key={u._id} className="flex items-center space-x-3"><img src={(u.image ?? undefined) || `https://ui-avatars.com/api/?name=${u.displayName || u.email}&background=E2E8F0&color=1A202C`} alt="avatar" className="h-10 w-10 rounded-full" /><div><p className="font-semibold">{u.displayName || 'N/A'}</p><p className="text-sm text-gray-500">{u.email}</p></div></li>)}</ul>
                                 </div>
                             </div>
                         </div>
@@ -133,10 +130,10 @@ export default function AdminDashboard() {
                                 <table className="w-full text-left">
                                     <thead><tr className="border-b bg-gray-50"><th className="p-3">User</th><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Joined</th><th className="p-3">Actions</th></tr></thead>
                                     <tbody>{filteredUsers.map(u => <tr key={u._id} className="border-b hover:bg-gray-50">
-                                        <td className="p-3 flex items-center space-x-3"><img src={u.image || `https://ui-avatars.com/api/?name=${u.displayName || u.email}`} alt="avatar" className="h-10 w-10 rounded-full" /><span>{u.displayName || 'N/A'}</span></td>
+                                        <td className="p-3 flex items-center space-x-3"><img src={(u.image ?? undefined) || `https://ui-avatars.com/api/?name=${u.displayName || u.email}`} alt="avatar" className="h-10 w-10 rounded-full" /><span>{u.displayName || 'N/A'}</span></td>
                                         <td className="p-3">{u.email}</td>
                                         <td className="p-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${u.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{u.role}</span></td>
-                                        <td className="p-3">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-3">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>
                                         <td className="p-3 space-x-2"><button className="text-blue-600 hover:underline">Edit</button><button className="text-red-600 hover:underline">Delete</button></td>
                                     </tr>)}</tbody>
                                 </table>

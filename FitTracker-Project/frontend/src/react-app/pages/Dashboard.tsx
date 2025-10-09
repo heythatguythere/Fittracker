@@ -258,8 +258,6 @@ export default function Dashboard() {
                 profile={profile}
                 workouts={recentWorkouts}
                 measurements={recentMeasurements}
-                dietEntries={recentDietEntries}
-                goals={goals}
                 isOpen={showShareModal}
                 onClose={() => setShowShareModal(false)}
             />

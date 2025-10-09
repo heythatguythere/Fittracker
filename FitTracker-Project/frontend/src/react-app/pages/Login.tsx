@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 const AdminDashboard = () => { /* ... Admin Dashboard JSX ... */ return <div>Admin Dashboard</div>; };
 
 export default function Login() {
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
     const { login } = useAuth();
     const [isLoginView, setIsLoginView] = useState(true);
     const [isAdminView, setIsAdminView] = useState(false);

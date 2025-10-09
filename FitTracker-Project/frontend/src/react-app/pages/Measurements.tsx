@@ -1,7 +1,7 @@
-import { useEffect, useState, FormEvent, ChangeEvent, ReactNode } from "react";
+import { useEffect, useState, FormEvent, ReactNode } from "react";
 import { useAuth } from "../AuthContext";
 import Layout from "../components/Layout";
-import { Plus, X, Pencil, Trash, Loader2, Scale, BarChart3, TrendingUp, TrendingDown, Calendar, Flame, Weight } from "lucide-react";
+import { Plus, X, Pencil, Trash, Loader2, Scale, TrendingUp, TrendingDown, Calendar, Flame, Weight } from "lucide-react";
 import axios from "axios";
 import type { Measurement, UserProfile } from "../../shared/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -106,13 +106,15 @@ export default function Measurements() {
     // --- Safely calculate stats ---
     const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
     const initialMeasurement = measurements.length > 0 ? measurements[0] : null;
-    const weightChange = (latestMeasurement && initialMeasurement) ? (latestMeasurement.weight_kg - initialMeasurement.weight_kg).toFixed(1) : '0.0';
+    const weightChange = (latestMeasurement?.weight_kg ?? null) !== null && (initialMeasurement?.weight_kg ?? null) !== null
+        ? ((latestMeasurement!.weight_kg! - initialMeasurement!.weight_kg!) .toFixed(1))
+        : '0.0';
     const calculateBmi = (weightKg?: number, heightCm?: number) => {
         if (!weightKg || !heightCm) return null;
         const heightM = heightCm / 100;
         return (weightKg / (heightM * heightM)).toFixed(2);
     };
-    const bmi = calculateBmi(latestMeasurement?.weight_kg, profile?.height_cm);
+    const bmi = calculateBmi(latestMeasurement?.weight_kg ?? undefined, profile?.height_cm ?? undefined);
 
     if (loading) { return <Layout><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div></Layout>; }
 

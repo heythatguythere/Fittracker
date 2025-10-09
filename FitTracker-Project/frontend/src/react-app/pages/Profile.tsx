@@ -4,7 +4,7 @@ import { useTheme } from "../ThemeContext";
 import Layout from "../components/Layout";
 import { User, Save, Calendar, Ruler, Target, Pencil, Trash2, Flame, Moon, Sun } from "lucide-react";
 import axios from "axios";
-import type { UserProfile } from "../../../shared/types";
+import type { UserProfile } from "../../shared/types";
 
 export default function Profile() {
   const { user } = useAuth();

@@ -12,7 +12,7 @@ import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveCon
 const workoutTypeIcons: { [key: string]: React.ElementType } = { cardio: Zap, strength: Dumbbell, yoga: BrainCircuit, hiit: Wind, default: Dumbbell };
 const MET_VALUES: { [key:string]: number } = { strength: 5.0, cardio: 7.0, hiit: 8.0, yoga: 2.5, default: 4.0 };
 const blankExercise: Partial<Exercise> = { exercise_name: "", sets: 3, reps: 10, weight: 0 };
-const initialWorkoutState: Partial<Workout> = { name: "", workout_type: "strength", workout_date: new Date().toISOString().split('T')[0], duration_minutes: 0, exercises: [{...blankExercise}]};
+const initialWorkoutState: Partial<Workout> = { name: "", workout_type: "strength", workout_date: new Date().toISOString().split('T')[0], duration_minutes: 0, exercises: [{...blankExercise as any}]};
 
 // Enhanced workout types with exercise libraries
 const WORKOUT_TYPES = [
@@ -82,7 +82,7 @@ export default function Workouts() {
     const [view, setView] = useState<'selection' | 'type' | 'exercises' | 'detail' | 'active' | 'summary'>('selection');
     const [selectedWorkoutType, setSelectedWorkoutType] = useState<string | null>(null);
     const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
-    const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
+    const [selectedWorkout, setSelectedWorkout] = useState<{ name?: string; workout_type?: string | null; exercises: any[]; workout_date?: string } | null>(null);
     const [finishedWorkout, setFinishedWorkout] = useState<Workout | null>(null);
     const [showLogModal, setShowLogModal] = useState(false);
     const [timeElapsed, setTimeElapsed] = useState(0);
@@ -133,7 +133,7 @@ export default function Workouts() {
             setSelectedExercises(prev => prev.filter(ex => (ex.name || ex.exercise_name) !== exercise.name));
         } else {
             const setsCount = 'sets' in exercise ? exercise.sets : 0;
-            setSelectedExercises(prev => [...prev, { ...exercise, exercise_name: exercise.name, completed: Array(setsCount).fill(false) }]);
+            setSelectedExercises(prev => [...prev, { ...exercise, exercise_name: exercise.name!, completed: Array(setsCount as number).fill(false) }]);
         }
     };
     
@@ -150,7 +150,7 @@ export default function Workouts() {
     };
     
     const handleSelectWorkout = (workout: Partial<WorkoutTemplate>) => { 
-        setSelectedWorkout({ ...workout, exercises: workout.exercises?.map(ex => ({ ...ex, completed: Array(ex.sets || 0).fill(false) })) }); 
+        setSelectedWorkout({ ...workout, exercises: (workout.exercises as any[])?.map((ex: any) => ({ ...ex, exercise_name: ex.exercise_name || ex.name || '', completed: Array((ex.sets || 0) as number).fill(false) })) }); 
         setView('detail'); 
     };
     const handleStartSession = () => { 
@@ -158,6 +158,7 @@ export default function Workouts() {
         startTimer();
     };
     const handleToggleSet = (exIndex: number, setIndex: number) => { 
+        if (!selectedWorkout) return;
         const newExercises = [...selectedWorkout.exercises]; 
         newExercises[exIndex].completed[setIndex] = !newExercises[exIndex].completed[setIndex]; 
         setSelectedWorkout({ ...selectedWorkout, exercises: newExercises }); 
@@ -199,7 +200,7 @@ export default function Workouts() {
             calories_burned: caloriesBurned, 
             workout_date: new Date().toISOString() 
         };
-        finalWorkout.exercises = finalWorkout.exercises.map(({ completed, ...rest }: any) => rest);
+        finalWorkout.exercises = finalWorkout.exercises.map(({ completed, name, weight_kg, ...rest }: any) => ({ ...rest, weight: rest.weight ?? weight_kg ?? 0 }));
 
         try {
             await axios.post("/api/workouts", finalWorkout, { withCredentials: true });
@@ -229,6 +230,7 @@ export default function Workouts() {
     };
     
     const handleUpdateExercise = (exIndex: number, updatedExercise: Exercise) => {
+        if (!selectedWorkout) return;
         const newExercises = [...selectedWorkout.exercises];
         newExercises[exIndex] = { ...newExercises[exIndex], ...updatedExercise };
         setSelectedWorkout({...selectedWorkout, exercises: newExercises});
@@ -684,7 +686,7 @@ function SummaryView({ workout, onClose, dailyGoal }: any) {
 
 // --- THIS IS THE FIX: The full ManualLogModal component is now included and functional ---
 function ManualLogModal({ onClose, onSave }: any) {
-    const [manualData, setManualData] = useState<Partial<Workout>>(initialWorkoutState);
+    const [manualData, setManualData] = useState<any>(initialWorkoutState);
     const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setManualData(p => ({ ...p, [e.target.name]: e.target.value }));
     const handleExChange = (i: number, f: string, v: string | number) => { const exs = [...(manualData.exercises || [])]; exs[i] = { ...exs[i], [f]: v }; setManualData(p => ({ ...p, exercises: exs })); };
     const addEx = () => setManualData(p => ({ ...p, exercises: [...(p.exercises || []), { ...blankExercise }] }));

@@ -102,7 +102,7 @@ export default function Diet() {
             const payload = { profile, dietEntries: todaysEntries };
             const response = await axios.post("/api/diet/suggestions", payload, { withCredentials: true });
             setSuggestions(response.data.suggestions);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to get suggestions:", error);
             setSuggestionError("Failed to get suggestions. Please try again.");
         } finally {
@@ -145,9 +145,12 @@ export default function Diet() {
                 console.log('Invalid response format:', response.data);
                 setCalculatedNutrition(null);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to calculate nutrition:", error);
-            console.error("Error details:", error.response?.data);
+            if (typeof error === 'object' && error && 'response' in error) {
+                // @ts-expect-error
+                console.error("Error details:", error.response?.data);
+            }
             setCalculatedNutrition(null);
             setSuggestionError("Failed to calculate nutrition. Please try again.");
             setTimeout(() => setSuggestionError(""), 3000);

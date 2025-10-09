@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { format, parseISO, eachWeekOfInterval, subWeeks } from 'date-fns';
-import type { Workout } from '@/shared/types';
+import type { Workout } from '../../shared/types';
 
 interface WorkoutAnalyticsProps {
   workouts: Workout[];

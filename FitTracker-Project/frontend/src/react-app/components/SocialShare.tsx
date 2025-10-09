@@ -5,23 +5,19 @@ import {
   X, 
   Facebook, 
   Twitter, 
-  Instagram, 
   Linkedin, 
   MessageCircle,
   Copy,
   Check,
-  Download,
   Image as ImageIcon
 } from 'lucide-react';
 import ShareableImage from './ShareableImage';
-import type { UserProfile, Workout, Measurement, DietEntry, Goal } from '../../shared/types';
+import type { UserProfile, Workout, Measurement } from '../../shared/types';
 
 interface SocialShareProps {
   profile: UserProfile | null;
   workouts: Workout[];
   measurements: Measurement[];
-  dietEntries: DietEntry[];
-  goals: Goal[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -30,8 +26,6 @@ const SocialShare: React.FC<SocialShareProps> = ({
   profile,
   workouts,
   measurements,
-  dietEntries,
-  goals,
   isOpen,
   onClose
 }) => {
@@ -54,7 +48,7 @@ const SocialShare: React.FC<SocialShareProps> = ({
       return workoutDate >= weekAgo;
     }).length;
 
-    const userName = profile?.first_name || 'Fitness Enthusiast';
+    // const userName = profile?.first_name || 'Fitness Enthusiast';
     const currentDate = new Date().toLocaleDateString();
 
     let content = `🏋️ My Fitness Journey Update - ${currentDate}\n\n`;
@@ -256,8 +250,6 @@ const SocialShare: React.FC<SocialShareProps> = ({
         profile={profile}
         workouts={workouts}
         measurements={measurements}
-        dietEntries={dietEntries}
-        goals={goals}
         isOpen={showImageGenerator}
         onClose={() => setShowImageGenerator(false)}
       />

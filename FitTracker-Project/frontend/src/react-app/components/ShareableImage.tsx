@@ -4,20 +4,16 @@ import {
   Download, 
   Share2, 
   X, 
-  Instagram, 
   Facebook, 
   Twitter,
-  Linkedin,
-  MessageCircle
+  Linkedin
 } from 'lucide-react';
-import type { UserProfile, Workout, Measurement, DietEntry, Goal } from '../../shared/types';
+import type { UserProfile, Workout, Measurement } from '../../shared/types';
 
 interface ShareableImageProps {
   profile: UserProfile | null;
   workouts: Workout[];
   measurements: Measurement[];
-  dietEntries: DietEntry[];
-  goals: Goal[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -26,8 +22,6 @@ const ShareableImage: React.FC<ShareableImageProps> = ({
   profile,
   workouts,
   measurements,
-  dietEntries,
-  goals,
   isOpen,
   onClose
 }) => {
@@ -156,7 +150,7 @@ const ShareableImage: React.FC<ShareableImageProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dataURL = canvas.toDataURL();
+    // const dataURL = canvas.toDataURL();
     const text = `Check out my fitness progress! 💪 #FitnessJourney #FitTracker`;
 
     switch (platform) {
@@ -167,9 +161,8 @@ const ShareableImage: React.FC<ShareableImageProps> = ({
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`, '_blank');
         break;
       case 'instagram':
-        // Instagram doesn't support direct sharing, so we'll download the image
+        // Instagram doesn't support direct sharing on web; just download
         downloadImage();
-        alert('Image downloaded! You can now upload it to Instagram.');
         break;
       case 'linkedin':
         window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}`, '_blank');
@@ -246,7 +239,6 @@ const ShareableImage: React.FC<ShareableImageProps> = ({
               {[
                 { name: 'Twitter', icon: Twitter, color: 'bg-sky-500', platform: 'twitter' },
                 { name: 'Facebook', icon: Facebook, color: 'bg-blue-600', platform: 'facebook' },
-                { name: 'Instagram', icon: Instagram, color: 'bg-pink-600', platform: 'instagram' },
                 { name: 'LinkedIn', icon: Linkedin, color: 'bg-blue-700', platform: 'linkedin' }
               ].map(({ name, icon: Icon, color, platform }) => (
                 <motion.button
