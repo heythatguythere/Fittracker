@@ -769,7 +769,12 @@ interface ManualLogModalProps {
 
 function ManualLogModal({ onClose, onSave }: ManualLogModalProps) {
     const [manualData, setManualData] = useState<Partial<Workout>>(initialWorkoutState);
-    const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setManualData(p => ({ ...p, [e.target.name]: e.target.value }));
+    const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const target = e.target as HTMLInputElement;
+        const rawValue = target.value;
+        const value = target.type === 'number' ? (rawValue === '' ? undefined : Number(rawValue)) : rawValue;
+        setManualData(p => ({ ...p, [target.name]: value }));
+    };
     const handleExChange = (i: number, f: string, v: string | number) => { 
         const exs = [...(manualData.exercises || [])]; 
         exs[i] = { ...exs[i], [f]: v }; 
