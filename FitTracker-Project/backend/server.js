@@ -25,7 +25,12 @@ const app = express();
 require('./config/passport-setup'); 
 
 mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connected...')).catch(err => console.log(err));
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ 
+    origin: process.env.NODE_ENV === 'production' 
+        ? [process.env.FRONTEND_URL, 'https://your-frontend-domain.vercel.app'] 
+        : 'http://localhost:5173', 
+    credentials: true 
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1); 

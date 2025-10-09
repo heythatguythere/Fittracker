@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (response.data) {
                     setUser(response.data);
                 }
-            } catch (error) {
+            } catch {
                 console.log('No active session');
             } finally {
                 setLoading(false);
