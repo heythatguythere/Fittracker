@@ -6,7 +6,7 @@ interface ThemeContextType {
     theme: Theme;
     setTheme: (theme: Theme) => void;
     toggleTheme: () => void;
-    isDarkMode: boolean; // FIX: Added isDarkMode property
+    isDarkMode: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -46,7 +46,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isDarkMode }}>
             {children}
-        </Theme-Context.Provider>
+        </ThemeContext.Provider> 
     );
 };
 
