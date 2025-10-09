@@ -5,21 +5,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
   plugins: [react(), cloudflare()],
-  server: {
-    // THIS IS THE NEW PROXY CONFIGURATION
-    proxy: {
-      // Any request starting with /api will be forwarded to the backend
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-      // Any request starting with /auth will also be forwarded
-      '/auth': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      }
-    }
-  },
+  // The server.proxy section has been removed as it is no longer necessary.
   build: {
     chunkSizeWarningLimit: 5000,
   },

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
 import { User } from '../shared/types';
 import { useNavigate } from 'react-router-dom';
+import api from './api'; // IMPORT our new configured api client
 
 interface AuthContextType {
     user: User | null;
@@ -21,8 +21,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const checkUser = async () => {
             try {
-                // CORRECTED: Use the '/api/current_user' endpoint
-                const res = await axios.get('/api/current_user', { withCredentials: true });
+                // USE the new 'api' client instead of 'axios'
+                const res = await api.get('/api/current_user');
                 setUser(res.data);
             } catch (error) {
                 setUser(null);
@@ -34,22 +34,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const login = async (email: string, password: string) => {
-        // CORRECTED: Use the '/auth/login' endpoint
-        const res = await axios.post('/auth/login', { email, password }, { withCredentials: true });
-        setUser(res.data.user); // The user object is nested under 'user'
-        navigate('/dashboard');
+        // USE the new 'api' client
+        const res = await api.post('/auth/login', { email, password });
+        setUser(res.data.user);
     };
 
     const signup = async (email: string, password: string, displayName: string) => {
-        // CORRECTED: Use the '/auth/register' endpoint
-        const res = await axios.post('/auth/register', { email, password, displayName }, { withCredentials: true });
-        setUser(res.data.user); // The user object is nested
-        navigate('/dashboard');
+        // USE the new 'api' client
+        const res = await api.post('/auth/register', { email, password, displayName });
+        setUser(res.data.user);
     };
 
     const logout = async () => {
-        // CORRECTED: Use GET method for '/auth/logout' endpoint
-        await axios.get('/auth/logout', { withCredentials: true });
+        // USE the new 'api' client
+        await api.get('/auth/logout');
         setUser(null);
         navigate('/login');
     };
