@@ -6,12 +6,14 @@ interface ThemeContextType {
     theme: Theme;
     setTheme: (theme: Theme) => void;
     toggleTheme: () => void;
+    isDarkMode: boolean; // FIX: Added isDarkMode property
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const [theme, setThemeState] = useState<Theme>('system');
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     useEffect(() => {
         const localTheme = localStorage.getItem('theme') as Theme | null;
@@ -25,6 +27,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         const currentTheme = theme === 'system' ? systemTheme : theme;
         
+        setIsDarkMode(currentTheme === 'dark');
+        
         root.classList.remove('light', 'dark');
         root.classList.add(currentTheme);
         
@@ -36,16 +40,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const toggleTheme = () => {
-        setThemeState((prev: string) => { // This line was fixed
-            if (prev === 'light') return 'dark';
-            return 'light';
-        });
+        setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isDarkMode }}>
             {children}
-        </ThemeContext.Provider>
+        </Theme-Context.Provider>
     );
 };
 
