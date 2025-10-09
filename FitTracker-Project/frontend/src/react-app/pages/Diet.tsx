@@ -147,7 +147,7 @@ export default function Diet() {
             }
         } catch (error) {
             console.error("Failed to calculate nutrition:", error);
-            console.error("Error details:", error.response?.data);
+            console.error("Error details:", (error as { response?: { data?: unknown } }).response?.data);
             setCalculatedNutrition(null);
             setSuggestionError("Failed to calculate nutrition. Please try again.");
             setTimeout(() => setSuggestionError(""), 3000);
