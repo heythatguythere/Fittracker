@@ -34,5 +34,23 @@ app.get('/api/test', (req, res) => {
     });
 });
 
+// Basic auth endpoints (without marked dependency)
+app.post('/auth/register', async (req, res) => {
+    res.json({ message: 'Registration endpoint - add your logic here' });
+});
+
+app.post('/auth/login', async (req, res) => {
+    res.json({ message: 'Login endpoint - add your logic here' });
+});
+
+// Basic API endpoints
+app.get('/api/workouts', (req, res) => {
+    res.json({ message: 'Workouts endpoint - add your logic here' });
+});
+
+app.post('/api/workouts', (req, res) => {
+    res.json({ message: 'Create workout endpoint - add your logic here' });
+});
+
 // Export for Vercel
 module.exports = app;
