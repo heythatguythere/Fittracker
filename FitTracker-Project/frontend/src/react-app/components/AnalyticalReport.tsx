@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { motion } from 'framer-motion';
 import { TrendingUp, Target, HeartPulse, Flame, Cake, Info } from 'lucide-react';
+// Note: I'm using UserProfile as defined in your new types.ts
 import type { Workout, Measurement, DietEntry, Goal, UserProfile } from '../../shared/types';
 
 interface AnalyticalReportProps {
@@ -10,6 +11,7 @@ interface AnalyticalReportProps {
     measurements: Measurement[];
     dietEntries: DietEntry[];
     goals: Goal[];
+    // Renamed prop to 'profile' to match your new code
     profile: UserProfile | null;
 }
 
@@ -17,17 +19,26 @@ export default function AnalyticalReport({ workouts, measurements, dietEntries, 
     const analytics = useMemo(() => {
         const totalWorkouts = workouts.length;
         const totalCaloriesBurned = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0);
-        const latestMeasurement = measurements[measurements.length - 1];
-        const initialMeasurement = measurements[0];
+        
+        // --- THIS IS THE FIX ---
+        // Added defensive checks to prevent crashing on empty arrays
+        const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+        const initialMeasurement = measurements.length > 0 ? measurements[0] : null;
+        // --- END OF FIX ---
+
         const weightChange = latestMeasurement && initialMeasurement ? (latestMeasurement.weight_kg ?? 0) - (initialMeasurement.weight_kg ?? 0) : 0;
+        
         const latestBmi = latestMeasurement && profile?.height_cm ? ((latestMeasurement.weight_kg ?? 0) / Math.pow(profile.height_cm / 100, 2)) : 0;
+        
         const avgDailyCalories = dietEntries.length > 0 ? dietEntries.reduce((sum, d) => sum + (d.calories ?? 0), 0) / new Set(dietEntries.map(d => new Date(d.entry_date).toDateString())).size : 0;
+        
         const macronutrients = dietEntries.reduce((acc, d) => {
             acc.protein += d.protein_g ?? 0;
             acc.carbs += d.carbs_g ?? 0;
             acc.fat += d.fat_g ?? 0;
             return acc;
         }, { protein: 0, carbs: 0, fat: 0 });
+
         const activeGoals = goals.filter(g => g.is_active).length;
         return { totalWorkouts, totalCaloriesBurned, weightChange, latestBmi, avgDailyCalories, macronutrients, activeGoals };
     }, [workouts, measurements, dietEntries, goals, profile]);
@@ -68,7 +79,7 @@ export default function AnalyticalReport({ workouts, measurements, dietEntries, 
                 <StatCard icon={<TrendingUp />} title="Weight Change" value={analytics.weightChange.toFixed(1)} unit="kg" />
                 <StatCard icon={<Cake />} title="Avg. Daily Calories" value={analytics.avgDailyCalories.toFixed(0)} unit="kcal" />
                 <StatCard icon={<Target />} title="Active Goals" value={analytics.activeGoals} />
-                <StatCard icon={<Info />} title="Latest BMI" value={analytics.latestBmi.toFixed(1)} />
+                <StatCard icon={<Info />} title="Latest BMI" value={analytics.latestBmi > 0 ? analytics.latestBmi.toFixed(1) : 'N/A'} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
@@ -76,23 +87,22 @@ export default function AnalyticalReport({ workouts, measurements, dietEntries, 
                      <h3 className="font-bold text-lg mb-4">Macronutrient Distribution (g)</h3>
                     <ResponsiveContainer width="100%" height="100%">
                          <PieChart>
-                            {/* DEFINITIVE FINAL FIX: Removed the problematic label prop and added a Legend */}
-                            <Pie
-                                data={macroPieData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                                paddingAngle={5}
-                            >
-                                {macroPieData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Legend />
-                        </PieChart>
+                             <Pie
+                                 data={macroPieData}
+                                 cx="50%"
+                                 cy="40%" // Adjusted to make space for Legend at the bottom
+                                 innerRadius={70}
+                                 outerRadius={100}
+                                 fill="#8884d8"
+                                 dataKey="value"
+                                 paddingAngle={5}
+                             >
+                                 {macroPieData.map((_, index) => (
+                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                 ))}
+                             </Pie>
+                             <Legend />
+                         </PieChart>
                     </ResponsiveContainer>
                 </div>
             </div>

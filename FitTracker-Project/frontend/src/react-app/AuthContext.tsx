@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { User } from '../shared/types'; // Corrected import path
+import { User } from '../shared/types';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
@@ -21,7 +21,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const checkUser = async () => {
             try {
-                const res = await axios.get('/api/auth/profile', { withCredentials: true });
+                // CORRECTED: Use the '/api/current_user' endpoint
+                const res = await axios.get('/api/current_user', { withCredentials: true });
                 setUser(res.data);
             } catch (error) {
                 setUser(null);
@@ -33,19 +34,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const login = async (email: string, password: string) => {
-        const res = await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
-        setUser(res.data);
+        // CORRECTED: Use the '/auth/login' endpoint
+        const res = await axios.post('/auth/login', { email, password }, { withCredentials: true });
+        setUser(res.data.user); // The user object is nested under 'user'
         navigate('/dashboard');
     };
 
     const signup = async (email: string, password: string, displayName: string) => {
-        const res = await axios.post('/api/auth/signup', { email, password, displayName }, { withCredentials: true });
-        setUser(res.data);
+        // CORRECTED: Use the '/auth/register' endpoint
+        const res = await axios.post('/auth/register', { email, password, displayName }, { withCredentials: true });
+        setUser(res.data.user); // The user object is nested
         navigate('/dashboard');
     };
 
     const logout = async () => {
-        await axios.post('/api/auth/logout', {}, { withCredentials: true });
+        // CORRECTED: Use GET method for '/auth/logout' endpoint
+        await axios.get('/auth/logout', { withCredentials: true });
         setUser(null);
         navigate('/login');
     };
