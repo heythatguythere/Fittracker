@@ -44,6 +44,8 @@ export const WorkoutExerciseSchema = z.object({
   sets: z.number().nullable(),
   reps: z.number().nullable(),
   weight: z.number().nullable(),
+  duration_minutes: z.number().nullable().optional(),
+  completed: z.array(z.boolean()).optional(),
 });
 
 export const WorkoutSchema = z.object({
@@ -87,8 +89,8 @@ export const ExerciseSchema = z.object({
 
 export type Exercise = z.infer<typeof ExerciseSchema>;
 
-// Workout Exercise Schema
-export const WorkoutExerciseSchema = z.object({
+// Workout Exercise Schema (renamed to avoid conflict)
+export const WorkoutExerciseDetailSchema = z.object({
   id: z.number().optional(),
   workout_id: z.number().optional(),
   exercise_id: z.number().optional(),
@@ -107,7 +109,7 @@ export const WorkoutExerciseSchema = z.object({
   completed: z.array(z.boolean()).optional(),
 });
 
-export type WorkoutExercise = z.infer<typeof WorkoutExerciseSchema>;
+export type WorkoutExerciseDetail = z.infer<typeof WorkoutExerciseDetailSchema>;
 
 // Measurement Schema
 export const MeasurementSchema = z.object({
@@ -247,6 +249,7 @@ export const WorkoutTemplateSchema = z.object({
   userId: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  workout_type: z.enum(['cardio', 'strength', 'yoga', 'group']).nullable().optional(),
   exercises: z.array(ExerciseTemplateSchema),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
