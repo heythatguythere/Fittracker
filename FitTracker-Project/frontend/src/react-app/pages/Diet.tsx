@@ -25,6 +25,8 @@ export default function Diet() {
     const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
     const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const [suggestionError, setSuggestionError] = useState("");
+    const [calculatingNutrition, setCalculatingNutrition] = useState(false);
+    const [calculatedNutrition, setCalculatedNutrition] = useState<{calories: number, protein_g: number, carbs_g: number, fat_g: number} | null>(null);
 
     useEffect(() => {
         if (user) {
@@ -52,18 +54,28 @@ export default function Diet() {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         const data = Object.fromEntries(formData.entries());
-        const newEntry = {
-            ...data,
-            entry_date: new Date(data.entry_date as string),
+        
+        // Use AI calculated nutrition if available, otherwise use form values
+        const nutritionData = calculatedNutrition || {
             calories: parseFloat(data.calories as string) || 0,
             protein_g: parseFloat(data.protein_g as string) || 0,
             carbs_g: parseFloat(data.carbs_g as string) || 0,
             fat_g: parseFloat(data.fat_g as string) || 0,
         };
+        
+        const newEntry = {
+            food_name: data.food_name,
+            meal_type: data.meal_type,
+            entry_date: new Date(data.entry_date as string),
+            notes: data.notes,
+            ...nutritionData,
+        };
+        
         try {
             const response = await axios.post("/api/diet", newEntry, { withCredentials: true });
             setDietEntries(prev => [response.data, ...prev].sort((a, b) => new Date(b.entry_date).getTime() - new Date(a.entry_date).getTime()));
             setShowCreateModal(false);
+            setCalculatedNutrition(null);
         } catch (error) {
             console.error("Failed to create diet entry:", error);
             alert("Error: Could not save diet entry.");
@@ -95,6 +107,52 @@ export default function Diet() {
             setSuggestionError("Failed to get suggestions. Please try again.");
         } finally {
             setSuggestionsLoading(false);
+        }
+    };
+
+    const calculateNutrition = async (foodName: string, mealType: string, portionSize: string) => {
+        if (!foodName.trim() || !mealType || !portionSize.trim()) {
+            console.log('Missing required fields:', { foodName, mealType, portionSize });
+            setCalculatedNutrition(null);
+            return;
+        }
+
+        console.log('Starting nutrition calculation for:', { foodName, mealType, portionSize });
+        setCalculatingNutrition(true);
+        try {
+            const response = await axios.post("/api/diet/calculate-calories", {
+                foodName,
+                mealType,
+                portionSize
+            }, { withCredentials: true });
+            
+            console.log('Full API response:', response);
+            console.log('Nutrition data received:', response.data);
+            
+            // Validate the response
+            if (response.data && typeof response.data === 'object') {
+                const { calories, protein_g, carbs_g, fat_g } = response.data;
+                console.log('Parsed values:', { calories, protein_g, carbs_g, fat_g });
+                
+                if (calories > 0 || protein_g > 0 || carbs_g > 0 || fat_g > 0) {
+                    setCalculatedNutrition(response.data);
+                    console.log('Nutrition set successfully:', response.data);
+                } else {
+                    console.log('All nutrition values are 0, this might be an error');
+                    setCalculatedNutrition(null);
+                }
+            } else {
+                console.log('Invalid response format:', response.data);
+                setCalculatedNutrition(null);
+            }
+        } catch (error) {
+            console.error("Failed to calculate nutrition:", error);
+            console.error("Error details:", error.response?.data);
+            setCalculatedNutrition(null);
+            setSuggestionError("Failed to calculate nutrition. Please try again.");
+            setTimeout(() => setSuggestionError(""), 3000);
+        } finally {
+            setCalculatingNutrition(false);
         }
     };
 
@@ -177,7 +235,173 @@ export default function Diet() {
                 )}
 
                 {showCreateModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"><div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md"><div className="flex justify-between items-center border-b pb-3 mb-4"><h2 className="text-2xl font-semibold">Add Food Entry</h2><button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-800"><X className="h-6 w-6" /></button></div><form onSubmit={createDietEntry}><div className="space-y-4"><div><label htmlFor="entry_date" className="block text-sm font-medium text-gray-700">Date</label><input type="date" name="entry_date" id="entry_date" required defaultValue={today} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" /></div><div><label htmlFor="food_name" className="block text-sm font-medium text-gray-700">Food Name</label><input type="text" name="food_name" id="food_name" required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" /></div><div><label htmlFor="meal_type" className="block text-sm font-medium text-gray-700">Meal Type</label><select name="meal_type" id="meal_type" required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"><option value="">Select Meal</option><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></div><div className="grid grid-cols-2 gap-4"><div><label htmlFor="calories" className="block text-sm font-medium text-gray-700">Calories</label><input type="number" name="calories" id="calories" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" /></div><div><label htmlFor="protein_g" className="block text-sm font-medium text-gray-700">Protein (g)</label><input type="number" name="protein_g" id="protein_g" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" /></div><div><label htmlFor="carbs_g" className="block text-sm font-medium text-gray-700">Carbs (g)</label><input type="number" name="carbs_g" id="carbs_g" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" /></div><div><label htmlFor="fat_g" className="block text-sm font-medium text-gray-700">Fat (g)</label><input type="number" name="fat_g" id="fat_g" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" /></div></div><div><label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes (Optional)</label><textarea name="notes" id="notes" rows={2} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea></div></div><div className="mt-6 flex justify-end"><button type="button" onClick={() => setShowCreateModal(false)} className="mr-2 px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300">Cancel</button><button type="submit" className="px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Save Entry</button></div></form></div></div>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg">
+                      <div className="flex justify-between items-center border-b dark:border-gray-700 pb-3 mb-4">
+                        <h2 className="text-2xl font-semibold dark:text-white">Add Food Entry</h2>
+                        <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                          <X className="h-6 w-6" />
+                        </button>
+                      </div>
+                      
+                      <form onSubmit={createDietEntry}>
+                        <div className="space-y-4">
+                          <div>
+                            <label htmlFor="entry_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                            <input type="date" name="entry_date" id="entry_date" required defaultValue={today} className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm" />
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="food_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Food Name</label>
+                            <input 
+                              type="text" 
+                              name="food_name" 
+                              id="food_name" 
+                              required 
+                              className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"
+                              onChange={(e) => {
+                                const form = e.target.form;
+                                if (form) {
+                                  const mealType = (form.querySelector('#meal_type') as HTMLSelectElement)?.value;
+                                  const portionSize = (form.querySelector('#portion_size') as HTMLInputElement)?.value;
+                                  if (mealType && portionSize) {
+                                    calculateNutrition(e.target.value, mealType, portionSize);
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="meal_type" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Meal Type</label>
+                            <select 
+                              name="meal_type" 
+                              id="meal_type" 
+                              required 
+                              className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"
+                              onChange={(e) => {
+                                const form = e.target.form;
+                                if (form) {
+                                  const foodName = (form.querySelector('#food_name') as HTMLInputElement)?.value;
+                                  const portionSize = (form.querySelector('#portion_size') as HTMLInputElement)?.value;
+                                  if (foodName && portionSize) {
+                                    calculateNutrition(foodName, e.target.value, portionSize);
+                                  }
+                                }
+                              }}
+                            >
+                              <option value="">Select Meal</option>
+                              <option value="breakfast">Breakfast</option>
+                              <option value="lunch">Lunch</option>
+                              <option value="dinner">Dinner</option>
+                              <option value="snack">Snack</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="portion_size" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Portion Size</label>
+                            <input 
+                              type="text" 
+                              name="portion_size" 
+                              id="portion_size" 
+                              placeholder="e.g., 1 cup, 200g, 1 medium apple"
+                              className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"
+                              onChange={(e) => {
+                                const form = e.target.form;
+                                if (form) {
+                                  const foodName = (form.querySelector('#food_name') as HTMLInputElement)?.value;
+                                  const mealType = (form.querySelector('#meal_type') as HTMLSelectElement)?.value;
+                                  if (foodName && mealType) {
+                                    calculateNutrition(foodName, mealType, e.target.value);
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                          
+                          {/* AI Calculated Nutrition Display */}
+                          {calculatingNutrition && (
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                              <div className="flex items-center space-x-2">
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                                <span className="text-sm text-blue-700 dark:text-blue-300">Calculating nutrition...</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {calculatedNutrition && !calculatingNutrition && (
+                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                              <h4 className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">AI Calculated Nutrition:</h4>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-green-700 dark:text-green-400">Calories:</span>
+                                  <span className="font-medium">{calculatedNutrition.calories}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700 dark:text-green-400">Protein:</span>
+                                  <span className="font-medium">{calculatedNutrition.protein_g}g</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700 dark:text-green-400">Carbs:</span>
+                                  <span className="font-medium">{calculatedNutrition.carbs_g}g</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-green-700 dark:text-green-400">Fat:</span>
+                                  <span className="font-medium">{calculatedNutrition.fat_g}g</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Hidden inputs for nutrition data - will be populated by AI calculation */}
+                          <input type="hidden" name="calories" value={calculatedNutrition?.calories || 0} />
+                          <input type="hidden" name="protein_g" value={calculatedNutrition?.protein_g || 0} />
+                          <input type="hidden" name="carbs_g" value={calculatedNutrition?.carbs_g || 0} />
+                          <input type="hidden" name="fat_g" value={calculatedNutrition?.fat_g || 0} />
+                          
+                          {!calculatedNutrition && !calculatingNutrition && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                              <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                                💡 <strong>AI-Powered:</strong> Fill in the food name, meal type, and portion size above, and we'll automatically calculate the nutrition for you!
+                              </p>
+                              <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                                Examples: "1 cup rice", "200g chicken", "1 medium apple"
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div>
+                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes (Optional)</label>
+                            <textarea 
+                              name="notes" 
+                              id="notes" 
+                              rows={2} 
+                              className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6 flex justify-end">
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setShowCreateModal(false);
+                              setCalculatedNutrition(null);
+                            }} 
+                            className="mr-2 px-4 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="submit" 
+                            className="px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            Save Entry
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
                 )}
             </div>
         </Layout>

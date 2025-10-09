@@ -1,12 +1,14 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useAuth } from "../AuthContext";
+import { useTheme } from "../ThemeContext";
 import Layout from "../components/Layout";
-import { User, Save, Calendar, Ruler, Target, Pencil, Trash2, Flame } from "lucide-react";
+import { User, Save, Calendar, Ruler, Target, Pencil, Trash2, Flame, Moon, Sun } from "lucide-react";
 import axios from "axios";
 import type { UserProfile } from "../../../shared/types";
 
 export default function Profile() {
   const { user } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -97,8 +99,8 @@ export default function Profile() {
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-            <p className="text-gray-600 mt-2">Manage your personal information and fitness goals.</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">Manage your personal information and fitness goals.</p>
           </div>
           {!isEditing && (
             <button onClick={() => setIsEditing(true)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
@@ -117,9 +119,34 @@ export default function Profile() {
               <h2 className="text-xl font-semibold text-gray-900">{user?.displayName || "User"}</h2>
               <p className="text-gray-600 text-sm">{user?.email}</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Management</h3>
-              <button onClick={() => setShowDeleteModal(true)} className="w-full bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-50" disabled={deleting}>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Management</h3>
+              
+              {/* Dark Mode Toggle */}
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {isDarkMode ? <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" /> : <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />}
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {isDarkMode ? 'Dark Mode' : 'Light Mode'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={toggleDarkMode}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      isDarkMode ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        isDarkMode ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+              
+              <button onClick={() => setShowDeleteModal(true)} className="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition-colors disabled:opacity-50" disabled={deleting}>
                 <Trash2 className="h-4 w-4" /><span>{deleting ? "Deleting..." : "Delete Account"}</span>
               </button>
             </div>

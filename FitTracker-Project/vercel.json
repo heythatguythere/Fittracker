@@ -1,0 +1,27 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "frontend/package.json",
+        "use": "@vercel/node",
+        "config": {
+          "installCommand": "npm install --prefix frontend",
+          "buildCommand": "npm run build --prefix frontend"
+        }
+      },
+      {
+        "src": "backend/server.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "/backend/server.js"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/frontend/$1"
+      }
+    ]
+  }

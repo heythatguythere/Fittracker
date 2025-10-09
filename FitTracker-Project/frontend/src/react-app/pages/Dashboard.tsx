@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { useAuth } from "../AuthContext";
+import { useTheme } from "../ThemeContext";
 import Layout from "../components/Layout";
 import AnalyticalReport from "../components/AnalyticalReport";
 import SocialShare from "../components/SocialShare";
@@ -23,25 +24,30 @@ import { marked } from "marked";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Reusable Stat Card Component
-const StatCard = ({ icon, title, value, color, delay }: { icon: React.ReactNode, title: string, value: string | number, color: string, delay: number }) => (
+const StatCard = ({ icon, title, value, color, delay, isDarkMode }: { icon: ReactNode, title: string, value: string | number, color: string, delay: number, isDarkMode: boolean }) => (
     <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay }}
-        className="bg-white/60 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-white/50 flex items-center space-x-4 transition-transform hover:scale-105 hover:shadow-xl"
+        className={`backdrop-blur-xl p-6 rounded-2xl shadow-lg border flex items-center space-x-4 transition-transform hover:scale-105 hover:shadow-xl ${
+            isDarkMode 
+                ? 'bg-gray-800/60 border-gray-700/50' 
+                : 'bg-white/60 border-white/50'
+        }`}
     >
         <div className={`p-3 rounded-full ${color}`}>
             {icon}
         </div>
         <div>
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{title}</p>
+            <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{value}</p>
         </div>
     </motion.div>
 );
 
 export default function Dashboard() {
     const { user, loading: authLoading } = useAuth();
+    const { isDarkMode } = useTheme();
     const navigate = useNavigate();
     
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -88,6 +94,8 @@ export default function Dashboard() {
                 finally { setLoading(false); }
             };
             fetchData();
+        } else if (!authLoading && !user) {
+            setLoading(false); // If there's no user, stop loading
         }
     }, [user, authLoading]);
 
@@ -96,11 +104,7 @@ export default function Dashboard() {
         setReportData(null);
         try {
             const payload = { profile, workouts: recentWorkouts, measurements: recentMeasurements, dietEntries: recentDietEntries };
-            
-            // --- THIS IS THE FIX ---
-            // Added { withCredentials: true } to ensure the user's session is sent with the request.
             const response = await axios.post("/api/generate-report", payload, { withCredentials: true });
-
             const formattedHtml = marked.parse(response.data.report || 'Could not generate report.') as string;
             setReportData(formattedHtml);
         } catch (error) {
@@ -156,10 +160,10 @@ export default function Dashboard() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard icon={<TrendingUp className="h-6 w-6 text-blue-600" />} title="Workout Streak" value={`${summary?.streak || 0} Days`} color="bg-blue-100" delay={0.1} />
-                    <StatCard icon={<Dumbbell className="h-6 w-6 text-green-600" />} title="Total Workouts" value={summary?.totalWorkouts || 0} color="bg-green-100" delay={0.2} />
-                    <StatCard icon={<Weight className="h-6 w-6 text-purple-600" />} title="Latest Weight" value={summary?.latestWeight ? `${summary.latestWeight} kg` : "N/A"} color="bg-purple-100" delay={0.3} />
-                    <StatCard icon={<Target className="h-6 w-6 text-red-600" />} title="Calorie Goal" value={profile?.calorie_goal ? `${profile.calorie_goal} kcal` : "Not Set"} color="bg-red-100" delay={0.4} />
+                    <StatCard icon={<TrendingUp className="h-6 w-6 text-blue-600" />} title="Workout Streak" value={`${summary?.streak || 0} Days`} color="bg-blue-100" delay={0.1} isDarkMode={isDarkMode} />
+                    <StatCard icon={<Dumbbell className="h-6 w-6 text-green-600" />} title="Total Workouts" value={summary?.totalWorkouts || 0} color="bg-green-100" delay={0.2} isDarkMode={isDarkMode} />
+                    <StatCard icon={<Weight className="h-6 w-6 text-purple-600" />} title="Latest Weight" value={summary?.latestWeight ? `${summary.latestWeight} kg` : "N/A"} color="bg-purple-100" delay={0.3} isDarkMode={isDarkMode} />
+                    <StatCard icon={<Target className="h-6 w-6 text-red-600" />} title="Calorie Goal" value={profile?.calorie_goal ? `${profile.calorie_goal} kcal` : "Not Set"} color="bg-red-100" delay={0.4} isDarkMode={isDarkMode} />
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -169,7 +173,7 @@ export default function Dashboard() {
                             <button onClick={() => navigate('/workouts')} className="p-6 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors text-center"><PlusCircle className="h-10 w-10 text-blue-600 mx-auto mb-2" /><span className="font-semibold text-blue-800">Start Blank Workout</span></button>
                             <button onClick={() => navigate('/workouts/templates')} className="p-6 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors text-center"><ClipboardList className="h-10 w-10 text-purple-600 mx-auto mb-2" /><span className="font-semibold text-purple-800">Manage Templates</span></button>
                        </div>
-                       {templates.length > 0 && (
+                       {templates && templates.length > 0 && (
                            <div className="mt-6"><h3 className="font-semibold text-gray-700 mb-3">Quick Start:</h3><div className="flex flex-wrap gap-2">{templates.slice(0, 3).map(t => (<button key={t._id} onClick={() => navigate(`/workouts?template=${t._id}`)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full font-medium">{t.name}</button>))}</div></div>
                        )}
                     </motion.div>
@@ -211,7 +215,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Analytical Report Modal */}
             <AnimatePresence>
                 {showAnalyticalReport && (
                     <motion.div
@@ -225,7 +228,7 @@ export default function Dashboard() {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden"
+                            className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -237,7 +240,7 @@ export default function Dashboard() {
                                     <X className="h-6 w-6 text-gray-500" />
                                 </button>
                             </div>
-                            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+                            <div className="overflow-y-auto">
                                 <AnalyticalReport
                                     profile={profile}
                                     workouts={recentWorkouts}
@@ -251,7 +254,6 @@ export default function Dashboard() {
                 )}
             </AnimatePresence>
 
-            {/* Social Share Modal */}
             <SocialShare
                 profile={profile}
                 workouts={recentWorkouts}

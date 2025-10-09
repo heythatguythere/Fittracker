@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { ThemeProvider } from "./ThemeContext";
 import { Loader2 } from "lucide-react";
 
 // Import all of your page components from their respective files
@@ -63,22 +64,13 @@ function AppRoutes() {
     useEffect(() => {
         // Only run this logic if the authentication check is complete AND a user is logged in.
         if (!loading && user) {
-            // If the user is on the login page (meaning they just logged in), redirect them.
-            // But only if they're not already on a protected route
-            if (location.pathname === '/login') {
+            // If the user is somehow on the login page (meaning they just logged in), redirect them.
+            if (location.pathname === '/login' || location.pathname === '/') {
                 if (user.role === 'admin') {
                     navigate('/admin/dashboard', { replace: true });
                 } else {
                     navigate('/dashboard', { replace: true });
                 }
-            }
-        }
-        
-        // If user is not logged in and trying to access protected routes, redirect to login
-        if (!loading && !user) {
-            const protectedRoutes = ['/dashboard', '/workouts', '/measurements', '/diet', '/profile', '/workouts/templates', '/friends', '/admin/dashboard'];
-            if (protectedRoutes.includes(location.pathname)) {
-                navigate('/login', { replace: true });
             }
         }
     }, [user, loading, navigate, location]);
@@ -116,10 +108,12 @@ function AppRoutes() {
 // The main App component that wraps the entire application in the AuthProvider and Router
 export default function App() {
     return (
-        <AuthProvider>
-            <Router>
-                <AppRoutes />
-            </Router>
-        </AuthProvider>
+        <ThemeProvider>
+            <AuthProvider>
+                <Router>
+                    <AppRoutes />
+                </Router>
+            </AuthProvider>
+        </ThemeProvider>
     );
 }

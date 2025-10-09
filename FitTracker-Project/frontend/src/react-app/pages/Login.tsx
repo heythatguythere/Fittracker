@@ -5,6 +5,10 @@ import axios from "axios";
 import { useAuth } from "../AuthContext"; // Ensure path is correct
 import { motion } from "framer-motion";
 
+// Note: In a multi-page app, this component would be in its own file and handled by the main router.
+// For this project structure, it remains here.
+const AdminDashboard = () => { /* ... Admin Dashboard JSX ... */ return <div>Admin Dashboard</div>; };
+
 export default function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -25,23 +29,31 @@ export default function Login() {
         try {
             const response = await axios.post(endpoint, payload, { withCredentials: true });
             const loggedInUser = response.data.user;
+
             if (loggedInUser) {
+                // --- THIS IS THE CRITICAL FIX ---
+                // The ONLY job here is to update the global context.
+                // We REMOVE all `Maps` calls from the success path.
                 login(loggedInUser);
-                // The main App.tsx router will handle the redirect
-            } else if (response.data.newUser) {
-                 const loginRes = await axios.post('/auth/login', payload, { withCredentials: true });
-                 if(loginRes.data.user){
-                     login(loginRes.data.user);
-                     navigate('/profile');
-                 }
+                
+                // The main App.tsx router will now see that the `user` state has changed
+                // and will automatically handle redirecting to /dashboard, /admin/dashboard, or /profile.
+
+            } else {
+                 setError("Authentication successful, but no user data was returned.");
             }
         } catch (err: any) {
-            setError(err.response?.data?.msg || "Authentication failed.");
+            setError(err.response?.data?.msg || "Authentication failed. Please check your credentials.");
         } finally {
             setLoading(false);
         }
     };
 
+    // This check is a temporary routing solution for the admin panel.
+    if (window.location.pathname === "/admin/dashboard") {
+        return <AdminDashboard />;
+    }
+    
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
             <div className="absolute inset-0 z-0 opacity-50">
@@ -85,7 +97,6 @@ export default function Login() {
                         </button>
                     </form>
 
-                    {/* --- THIS SECTION IS NOW RESTORED --- */}
                     {!isAdminView && (
                         <>
                             <div className="flex items-center my-6"><hr className="flex-grow" /><span className="mx-4 text-gray-400 text-sm">OR</span><hr className="flex-grow" /></div>
