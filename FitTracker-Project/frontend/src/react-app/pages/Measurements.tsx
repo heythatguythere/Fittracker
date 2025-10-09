@@ -1,7 +1,7 @@
-import { useEffect, useState, FormEvent, ChangeEvent, ReactNode } from "react";
+import { useEffect, useState, FormEvent, ReactNode } from "react";
 import { useAuth } from "../AuthContext";
 import Layout from "../components/Layout";
-import { Plus, X, Pencil, Trash, Loader2, Scale, BarChart3, TrendingUp, TrendingDown, Calendar, Flame, Weight } from "lucide-react";
+import { Plus, X, Pencil, Trash, Loader2, Scale, TrendingUp, TrendingDown, Calendar, Flame, Weight } from "lucide-react";
 import axios from "axios";
 import type { Measurement, UserProfile } from "../../shared/types";
 import { motion, AnimatePresence } from "framer-motion";

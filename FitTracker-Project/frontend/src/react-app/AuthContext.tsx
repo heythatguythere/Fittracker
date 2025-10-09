@@ -2,8 +2,7 @@
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import axios from 'axios';
-import { User } from '../../shared/types'; // Adjust path if needed
-
+import { User } from '../shared/types'; 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
@@ -18,33 +17,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get('/api/current_user', { withCredentials: true })
-            .then(res => {
-                if (res.data) setUser(res.data);
-            })
-            .catch(() => setUser(null))
-            .finally(() => setLoading(false));
+        // Check if user is logged in on app start
+        const checkAuth = async () => {
+            try {
+                const response = await axios.get('/api/auth/me', { withCredentials: true });
+                if (response.data) {
+                    setUser(response.data);
+                }
+            } catch (error) {
+                console.log('No active session');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkAuth();
     }, []);
 
     const login = (userData: User) => {
         setUser(userData);
     };
 
-    // --- THIS IS THE FIX ---
-    // Make the logout function async so we can await it
     const logout = async () => {
         try {
-            await axios.get('/auth/logout', { withCredentials: true });
-            setUser(null); // Clear the user state
+            await axios.post('/api/auth/logout', {}, { withCredentials: true });
         } catch (error) {
-            console.error("Logout API call failed:", error);
-            setUser(null); // Clear the user state even if the call fails
+            console.error('Logout error:', error);
+        } finally {
+            setUser(null);
         }
     };
 
-    const value = { user, loading, login, logout };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={{ user, loading, login, logout }}>
+            {children}
+        </AuthContext.Provider>
+    );
 }
 
 export function useAuth() {
