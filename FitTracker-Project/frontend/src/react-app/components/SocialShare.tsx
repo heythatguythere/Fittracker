@@ -5,12 +5,10 @@ import {
   X, 
   Facebook, 
   Twitter, 
-  Instagram, 
   Linkedin, 
   MessageCircle,
   Copy,
   Check,
-  Download,
   Image as ImageIcon
 } from 'lucide-react';
 import ShareableImage from './ShareableImage';
@@ -54,7 +52,6 @@ const SocialShare: React.FC<SocialShareProps> = ({
       return workoutDate >= weekAgo;
     }).length;
 
-    const userName = profile?.first_name || 'Fitness Enthusiast';
     const currentDate = new Date().toLocaleDateString();
 
     let content = `🏋️ My Fitness Journey Update - ${currentDate}\n\n`;

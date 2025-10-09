@@ -32,7 +32,7 @@ export default function AdminDashboard() {
     const [activeView, setActiveView] = useState('dashboard'); 
     const [stats, setStats] = useState({ totalUsers: 0, totalWorkouts: 0, newUsersLast7Days: 0 });
     const [users, setUsers] = useState<User[]>([]);
-    const [loadingData, setLoadingData] = useState(true);
+    const [, setLoadingData] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
