@@ -112,7 +112,7 @@ export default function Measurements() {
         const heightM = heightCm / 100;
         return (weightKg / (heightM * heightM)).toFixed(2);
     };
-    const bmi = calculateBmi(latestMeasurement?.weight_kg, profile?.height_cm);
+    const bmi = calculateBmi(latestMeasurement?.weight_kg ?? undefined, profile?.height_cm ?? undefined);
 
     if (loading) { return <Layout><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div></Layout>; }
 

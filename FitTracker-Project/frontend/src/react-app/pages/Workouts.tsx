@@ -4,15 +4,21 @@ import Layout from "../components/Layout";
 import { Plus, X, Pencil, Loader2, Dumbbell, Clock, Flame, Zap, Save, Play, Pause, Square, CheckSquare, Timer, ArrowLeft, History, BarChart, Wind, BrainCircuit, ChevronRight, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
-import type { Workout, Exercise, UserProfile, WorkoutTemplate, WorkoutExercise, ExerciseTemplate } from "../../shared/types";
+import type { Workout, Exercise, UserProfile, WorkoutTemplate, WorkoutExercise, ExerciseTemplate } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 
 // --- TYPES ---
-interface WorkoutInProgress extends WorkoutTemplate {
+interface WorkoutInProgress {
+    _id?: string;
+    userId?: string;
+    name: string;
+    description?: string;
     workout_type?: string | null;
     workout_date?: string;
     exercises: (WorkoutExercise & { completed?: boolean[] })[];
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 // --- HELPER DATA & DEFAULTS ---

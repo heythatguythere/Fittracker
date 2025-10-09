@@ -50,7 +50,7 @@ export default function ProgressChart({
 
   const latest = chartData[chartData.length - 1];
   const previous = chartData.length > 1 ? chartData[chartData.length - 2] : null;
-  const change = previous ? latest.value - previous.value : 0;
+  const change = previous ? (latest.value as number) - (previous.value as number) : 0;
   const trend = change > 0 ? 'up' : change < 0 ? 'down' : 'neutral';
 
   return (
@@ -59,7 +59,7 @@ export default function ProgressChart({
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         <div className="text-right">
           <p className="text-2xl font-bold" style={{ color }}>
-            {formatValue ? formatValue(latest.value) : `${latest.value}${unit}`}
+            {formatValue ? formatValue(latest.value as number) : `${latest.value}${unit}`}
           </p>
           {previous && (
             <p className={`text-sm ${

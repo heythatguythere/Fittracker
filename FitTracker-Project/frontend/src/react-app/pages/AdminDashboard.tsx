@@ -136,7 +136,7 @@ export default function AdminDashboard() {
                                         <td className="p-3 flex items-center space-x-3"><img src={u.image || `https://ui-avatars.com/api/?name=${u.displayName || u.email}`} alt="avatar" className="h-10 w-10 rounded-full" /><span>{u.displayName || 'N/A'}</span></td>
                                         <td className="p-3">{u.email}</td>
                                         <td className="p-3"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${u.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{u.role}</span></td>
-                                        <td className="p-3">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-3">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</td>
                                         <td className="p-3 space-x-2"><button className="text-blue-600 hover:underline">Edit</button><button className="text-red-600 hover:underline">Delete</button></td>
                                     </tr>)}</tbody>
                                 </table>
