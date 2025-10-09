@@ -80,8 +80,8 @@ export default function Workouts() {
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'selection' | 'type' | 'exercises' | 'detail' | 'active' | 'summary'>('selection');
     const [selectedWorkoutType, setSelectedWorkoutType] = useState<string | null>(null);
-    const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
-    const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
+    const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+    const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [finishedWorkout, setFinishedWorkout] = useState<Workout | null>(null);
     const [showLogModal, setShowLogModal] = useState(false);
     const [timeElapsed, setTimeElapsed] = useState(0);
@@ -126,16 +126,16 @@ export default function Workouts() {
         setView('exercises');
     };
     
-    const handleSelectExercise = (exercise: any) => {
+    const handleSelectExercise = (exercise: Exercise) => {
         const isSelected = selectedExercises.some(ex => ex.exercise_name === exercise.name);
         if (isSelected) {
             setSelectedExercises(prev => prev.filter(ex => ex.exercise_name !== exercise.name));
         } else {
-            const setsCount = 'sets' in exercise ? exercise.sets : 0;
+            const setsCount = 'sets' in exercise ? (exercise.sets || 0) : 0;
             setSelectedExercises(prev => [...prev, { 
                 ...exercise, 
                 exercise_name: exercise.name, 
-                completed: Array(setsCount).fill(false),
+                completed: Array(setsCount).fill(false) as boolean[],
                 sets: exercise.sets || null,
                 reps: exercise.reps || null,
                 weight: exercise.weight || exercise.weight_kg || null,
@@ -146,7 +146,7 @@ export default function Workouts() {
     
     const handleCreateWorkout = () => {
         const workoutType = WORKOUT_TYPES.find(t => t.id === selectedWorkoutType);
-        const workout: Partial<Workout> = {
+        const workout: Workout = {
             _id: '',
             userId: user?._id || '',
             name: `${workoutType?.name} Workout`,
@@ -167,7 +167,7 @@ export default function Workouts() {
     };
     
     const handleSelectWorkout = (workout: Partial<WorkoutTemplate>) => { 
-        const workoutData: Partial<Workout> = {
+        const workoutData: Workout = {
             _id: workout._id || '',
             userId: user?._id || '',
             name: workout.name || '',
@@ -202,7 +202,7 @@ export default function Workouts() {
         }
     };
     
-    const calculateCaloriesBurned = (exercises: any[], durationMinutes: number, weightKg: number) => {
+    const calculateCaloriesBurned = (exercises: Exercise[], durationMinutes: number, weightKg: number) => {
         let totalCalories = 0;
         
         exercises.forEach(exercise => {
@@ -228,7 +228,7 @@ export default function Workouts() {
         if (!selectedWorkout) return;
         pauseTimer();
         const durationMinutes = Math.max(1, Math.round(timeElapsed / 60));
-        const weightKg = (profile?.weight_goal_kg || 70) || 70; // Use weight goal or default to 70kg
+        const weightKg = profile?.weight_goal_kg || 70; // Use weight goal or default to 70kg
         const caloriesBurned = calculateCaloriesBurned(selectedWorkout.exercises, durationMinutes, weightKg);
         
         const finalWorkout: Partial<Workout> = { 
@@ -240,7 +240,7 @@ export default function Workouts() {
         };
         // Remove completed arrays from exercises before saving
         finalWorkout.exercises = finalWorkout.exercises?.map((exercise) => {
-            const { completed, ...rest } = exercise;
+            const { completed: _, ...rest } = exercise;
             return rest;
         });
 
@@ -295,7 +295,7 @@ export default function Workouts() {
             <AnimatePresence mode="wait">
                 {view === 'selection' && <SelectionView key="selection" workouts={workouts} templates={templates} navigate={navigate} onSelectWorkout={handleSelectWorkout} onSelectWorkoutType={handleSelectWorkoutType} onLogManual={() => setShowLogModal(true)} />}
                 {view === 'type' && <WorkoutTypeView key="type" onSelectType={handleSelectWorkoutType} onBack={handleBackToSelection} />}
-                {view === 'exercises' && <ExerciseSelectionView key="exercises" workoutType={selectedWorkoutType} selectedExercises={selectedExercises} onSelectExercise={handleSelectExercise} onCreateWorkout={handleCreateWorkout} onBack={() => setView('type')} />}
+                {view === 'exercises' && <ExerciseSelectionView key="exercises" workoutType={selectedWorkoutType || ''} selectedExercises={selectedExercises} onSelectExercise={handleSelectExercise} onCreateWorkout={handleCreateWorkout} onBack={() => setView('type')} />}
                 {view === 'detail' && selectedWorkout && <DetailView key="detail" workout={selectedWorkout} onStart={handleStartSession} onBack={handleBackToSelection} onUpdateExercise={handleUpdateExercise} />}
                 {view === 'active' && selectedWorkout && <ActiveView key="active" workout={selectedWorkout} timeElapsed={timeElapsed} isTimerRunning={isTimerRunning} formatTime={formatTime} onPause={pauseTimer} onPlay={startTimer} onToggleSet={handleToggleSet} onFinish={handleFinishWorkout} onBack={() => setView('detail')} />}
                 {view === 'summary' && finishedWorkout && <SummaryView key="summary" workout={finishedWorkout} onClose={handleCloseSummary} dailyGoal={profile?.calorie_goal || 2000} />}
@@ -310,7 +310,16 @@ export default function Workouts() {
 
 const pageVariants = { initial: { opacity: 0, x: 50 }, in: { opacity: 1, x: 0 }, out: { opacity: 0, x: -50 } };
 
-function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelectWorkoutType, onLogManual }: any) {
+interface SelectionViewProps {
+    workouts: Workout[];
+    templates: WorkoutTemplate[];
+    navigate: (view: 'type' | 'exercises' | 'detail' | 'active' | 'summary') => void;
+    onSelectWorkout: (workout: WorkoutTemplate) => void;
+    onSelectWorkoutType: (type: string) => void;
+    onLogManual: () => void;
+}
+
+function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelectWorkoutType, onLogManual }: SelectionViewProps) {
     const processWorkoutDataForChart = () => {
         const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return { date: d.toISOString().split('T')[0], name: d.toLocaleDateString('en-US', { weekday: 'short' }), workouts: 0 }; }).reverse();
         workouts.forEach((w: Workout) => { const d = new Date(w.workout_date).toISOString().split('T')[0]; const day = last7Days.find(day => day.date === d); if (day) day.workouts++; });
@@ -344,17 +353,22 @@ function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelec
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <motion.button whileHover={{ scale: 1.02 }} onClick={() => navigate('/workouts/templates')} className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-8 text-left"><h2 className="text-2xl font-bold flex items-center">Manage Templates <ChevronRight className="ml-2"/></h2><p className="text-gray-600 mt-2">Create and edit your own reusable workout plans.</p></motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} onClick={() => navigate('type')} className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-8 text-left"><h2 className="text-2xl font-bold flex items-center">Manage Templates <ChevronRight className="ml-2"/></h2><p className="text-gray-600 mt-2">Create and edit your own reusable workout plans.</p></motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} onClick={onLogManual} className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-8 text-left"><h2 className="text-2xl font-bold flex items-center">Log a Past Workout <Pencil className="ml-2 text-blue-500"/></h2><p className="text-gray-600 mt-2">Manually enter the details of a workout you've already completed.</p></motion.button>
             </div>
-            <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-6"><h2 className="text-2xl font-bold mb-4">Workout Library</h2><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{[...WORKOUT_LIBRARY, ...templates].map((w, i) => { const Icon = workoutTypeIcons[w.description || 'default']; return (<button key={i} onClick={() => onSelectWorkout(w)} className="p-4 bg-gray-50 hover:bg-blue-50 border rounded-lg text-left transition-colors"><Icon className="h-8 w-8 text-blue-500 mb-2" /><p className="font-bold text-lg">{w.name}</p><p className="text-sm text-gray-500">{w.exercises?.length} exercises</p></button>)})}</div></div>
+            <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-6"><h2 className="text-2xl font-bold mb-4">Workout Library</h2><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{[...WORKOUT_LIBRARY, ...templates].map((w, i) => { const Icon = workoutTypeIcons[w.description || 'default']; return (<button key={i} onClick={() => onSelectWorkout(w as WorkoutTemplate)} className="p-4 bg-gray-50 hover:bg-blue-50 border rounded-lg text-left transition-colors"><Icon className="h-8 w-8 text-blue-500 mb-2" /><p className="font-bold text-lg">{w.name}</p><p className="text-sm text-gray-500">{w.exercises?.length} exercises</p></button>)})}</div></div>
             <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-6"><h2 className="text-2xl font-bold mb-4 flex items-center"><BarChart className="mr-3"/>Weekly Activity</h2><div style={{width: '100%', height: 300}}><ResponsiveContainer><RechartsBarChart data={processWorkoutDataForChart()}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="workouts" fill="#3B82F6" radius={[4, 4, 0, 0]} /></RechartsBarChart></ResponsiveContainer></div></div>
             <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-6"><h2 className="text-2xl font-bold mb-4 flex items-center"><History className="mr-3"/>Workout History</h2>{workouts.length > 0 ? (<div className="space-y-3">{workouts.map((w: Workout) => (<div key={w._id} className="bg-white/80 p-3 rounded-lg border flex justify-between items-center"><div><p className="font-semibold">{w.name || w.workout_type}</p><p className="text-xs text-gray-500">{new Date(w.workout_date).toLocaleDateString()}</p></div><div className="text-right text-sm"><p className="font-semibold">{w.duration_minutes} min</p><p className="text-gray-500">{w.calories_burned || 'N/A'} kcal</p></div></div>))}</div>) : (<p className="text-gray-500 text-center py-4">No workouts logged yet.</p>)}</div>
         </motion.div>
     );
 }
 
-function WorkoutTypeView({ onSelectType, onBack }: any) {
+interface WorkoutTypeViewProps {
+    onSelectType: (type: string) => void;
+    onBack: () => void;
+}
+
+function WorkoutTypeView({ onSelectType, onBack }: WorkoutTypeViewProps) {
     return (
         <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.3 }} className="space-y-8">
             <div className="flex items-center space-x-4 mb-6">
@@ -386,7 +400,15 @@ function WorkoutTypeView({ onSelectType, onBack }: any) {
     );
 }
 
-function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercise, onCreateWorkout, onBack }: any) {
+interface ExerciseSelectionViewProps {
+    workoutType: string;
+    selectedExercises: Exercise[];
+    onSelectExercise: (exercise: Exercise) => void;
+    onCreateWorkout: () => void;
+    onBack: () => void;
+}
+
+function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercise, onCreateWorkout, onBack }: ExerciseSelectionViewProps) {
     const exercises = EXERCISE_LIBRARY[workoutType as keyof typeof EXERCISE_LIBRARY] || [];
     const workoutTypeInfo = WORKOUT_TYPES.find(t => t.id === workoutType);
     
@@ -411,8 +433,8 @@ function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercis
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto">
-                    {exercises.map((exercise: any, index: number) => {
-                        const isSelected = selectedExercises.some((ex: any) => ex.exercise_name === exercise.name);
+                    {exercises.map((exercise: Exercise, index: number) => {
+                        const isSelected = selectedExercises.some((ex: Exercise) => ex.exercise_name === exercise.name);
                         return (
                             <motion.button
                                 key={index}

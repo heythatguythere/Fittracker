@@ -10,12 +10,16 @@ export default defineConfig({
     proxy: {
       // Any request starting with /api will be forwarded to the backend
       '/api': {
-        target: 'http://localhost:5000',
+        target: process.env.NODE_ENV === 'production' 
+          ? process.env.VITE_API_URL || 'https://your-app-name.vercel.app'
+          : 'http://localhost:5000',
         changeOrigin: true,
       },
       // Any request starting with /auth will also be forwarded
       '/auth': {
-        target: 'http://localhost:5000',
+        target: process.env.NODE_ENV === 'production' 
+          ? process.env.VITE_API_URL || 'https://your-app-name.vercel.app'
+          : 'http://localhost:5000',
         changeOrigin: true,
       }
     }
