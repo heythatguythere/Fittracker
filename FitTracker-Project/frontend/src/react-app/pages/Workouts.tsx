@@ -133,7 +133,7 @@ export default function Workouts() {
             setSelectedExercises(prev => prev.filter(ex => (ex.name || ex.exercise_name) !== exercise.name));
         } else {
             const setsCount = 'sets' in exercise ? exercise.sets : 0;
-            setSelectedExercises(prev => [...prev, { ...exercise, exercise_name: exercise.name, completed: Array(setsCount).fill(false) }]);
+            setSelectedExercises(prev => [...prev, { ...exercise, exercise_name: exercise.name, completed: Array(Number(setsCount || 0)).fill(false) }]);
         }
     };
     
@@ -150,7 +150,7 @@ export default function Workouts() {
     };
     
     const handleSelectWorkout = (workout: Partial<WorkoutTemplate>) => { 
-        setSelectedWorkout({ ...workout, exercises: workout.exercises?.map(ex => ({ ...ex, completed: Array(ex.sets || 0).fill(false) })) }); 
+        setSelectedWorkout({ ...workout, exercises: workout.exercises?.map(ex => ({ ...ex, completed: Array(Number(ex.sets || 0)).fill(false) })) }); 
         setView('detail'); 
     };
     const handleStartSession = () => { 
@@ -158,6 +158,7 @@ export default function Workouts() {
         startTimer();
     };
     const handleToggleSet = (exIndex: number, setIndex: number) => { 
+        if (!selectedWorkout) return; 
         const newExercises = [...selectedWorkout.exercises]; 
         newExercises[exIndex].completed[setIndex] = !newExercises[exIndex].completed[setIndex]; 
         setSelectedWorkout({ ...selectedWorkout, exercises: newExercises }); 
@@ -175,7 +176,7 @@ export default function Workouts() {
                 exerciseDuration = exercise.duration_minutes;
             } else if (exercise.sets && exercise.reps) {
                 // Estimate duration based on sets and reps (assuming 30 seconds per set)
-                exerciseDuration = (exercise.sets * 0.5);
+                exerciseDuration = (Number(exercise.sets || 0) * 0.5);
             }
             
             const exerciseCalories = metValue * weightKg * (exerciseDuration / 60);
@@ -229,9 +230,10 @@ export default function Workouts() {
     };
     
     const handleUpdateExercise = (exIndex: number, updatedExercise: Exercise) => {
+        if (!selectedWorkout) return;
         const newExercises = [...selectedWorkout.exercises];
         newExercises[exIndex] = { ...newExercises[exIndex], ...updatedExercise };
-        setSelectedWorkout({...selectedWorkout, exercises: newExercises});
+        setSelectedWorkout({ ...selectedWorkout, exercises: newExercises });
     };
 
     if (loading) { return <Layout><div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div></Layout>; }

@@ -145,9 +145,9 @@ export default function Diet() {
                 console.log('Invalid response format:', response.data);
                 setCalculatedNutrition(null);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to calculate nutrition:", error);
-            console.error("Error details:", error.response?.data);
+            console.error("Error details:", error?.response?.data);
             setCalculatedNutrition(null);
             setSuggestionError("Failed to calculate nutrition. Please try again.");
             setTimeout(() => setSuggestionError(""), 3000);

@@ -33,7 +33,7 @@ export default function ProgressChart({
     .map(item => ({
       ...item,
       date: format(parseISO(item.date), 'MMM dd'),
-      value: item[dataKey]
+      value: Number(item[dataKey] as number),
     }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

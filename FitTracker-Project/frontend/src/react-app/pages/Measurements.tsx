@@ -106,7 +106,9 @@ export default function Measurements() {
     // --- Safely calculate stats ---
     const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
     const initialMeasurement = measurements.length > 0 ? measurements[0] : null;
-    const weightChange = (latestMeasurement && initialMeasurement) ? (latestMeasurement.weight_kg - initialMeasurement.weight_kg).toFixed(1) : '0.0';
+    const weightChange = (latestMeasurement?.weight_kg ?? null) !== null && (initialMeasurement?.weight_kg ?? null) !== null
+        ? ((latestMeasurement!.weight_kg as number) - (initialMeasurement!.weight_kg as number)).toFixed(1)
+        : '0.0';
     const calculateBmi = (weightKg?: number, heightCm?: number) => {
         if (!weightKg || !heightCm) return null;
         const heightM = heightCm / 100;

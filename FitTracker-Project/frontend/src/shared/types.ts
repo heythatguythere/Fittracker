@@ -38,28 +38,7 @@ export const UserProfileSchema = z.object({
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
-// Workout Schema
-export const WorkoutExerciseSchema = z.object({
-  exercise_name: z.string(),
-  sets: z.number().nullable(),
-  reps: z.number().nullable(),
-  weight: z.number().nullable(),
-});
-
-export const WorkoutSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  workout_type: z.enum(['cardio', 'strength', 'yoga', 'group']).nullable(),
-  duration_minutes: z.number().nullable(),
-  calories_burned: z.number().nullable(),
-  workout_date: z.string(),
-  exercises: z.array(WorkoutExerciseSchema),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
-
-export type Workout = z.infer<typeof WorkoutSchema>;
+// (moved WorkoutSchema below, after WorkoutExerciseSchema definition)
 
 // Exercise Schema
 export const ExerciseSchema = z.object({
@@ -92,22 +71,40 @@ export const WorkoutExerciseSchema = z.object({
   id: z.number().optional(),
   workout_id: z.number().optional(),
   exercise_id: z.number().optional(),
+  // Core workout-exercise properties
+  exercise_name: z.string().optional(),
+  name: z.string().optional(),
   sets: z.number().nullable().optional(),
   reps: z.number().nullable().optional(),
   weight: z.number().nullable().optional(),
   weight_kg: z.number().nullable().optional(),
+  duration_minutes: z.number().nullable().optional(),
+  // Additional metadata used by UI flows
   rest_seconds: z.number().nullable().optional(),
   notes: z.string().nullable().optional(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional(),
-  name: z.string().optional(),
-  exercise_name: z.string().optional(),
-  duration_minutes: z.number().nullable().optional(),
   met: z.number().optional(),
   completed: z.array(z.boolean()).optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
 export type WorkoutExercise = z.infer<typeof WorkoutExerciseSchema>;
+
+// Workout Schema (defined after WorkoutExerciseSchema to avoid TDZ)
+export const WorkoutSchema = z.object({
+  _id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  workout_type: z.enum(['cardio', 'strength', 'yoga', 'group']).nullable(),
+  duration_minutes: z.number().nullable(),
+  calories_burned: z.number().nullable(),
+  workout_date: z.string(),
+  exercises: z.array(WorkoutExerciseSchema),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type Workout = z.infer<typeof WorkoutSchema>;
 
 // Measurement Schema
 export const MeasurementSchema = z.object({

@@ -126,10 +126,13 @@ export default function NutritionChart({ data, totalCalories, type = 'pie' }: Nu
               <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
               <YAxis stroke="#6b7280" fontSize={12} />
               <Tooltip 
-                formatter={(value: number, _name: string, props: any) => [
-                  `${value}g (${props.payload.calories} cal)`, 
-                  props.payload.name
-                ]}
+                formatter={(value: number, _name: string, item) => {
+                  const payload: any = (item as any)?.payload || {};
+                  return [
+                    `${value}g (${payload.calories} cal)`,
+                    payload.name,
+                  ];
+                }}
                 contentStyle={{ 
                   backgroundColor: 'white', 
                   border: '1px solid #e5e7eb',
