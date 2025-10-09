@@ -4,9 +4,62 @@ import Layout from "../components/Layout";
 import { Plus, X, Pencil, Loader2, Dumbbell, Clock, Flame, Zap, Save, Play, Pause, Square, CheckSquare, Timer, ArrowLeft, History, BarChart, Wind, BrainCircuit, ChevronRight, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
-import type { Workout, Exercise, UserProfile, WorkoutTemplate } from "../../shared/types";
+import type { Workout, Exercise, UserProfile, WorkoutTemplate, WorkoutExercise } from "../../shared/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
+
+// --- INTERFACES ---
+interface SelectionViewProps {
+  workouts: Workout[];
+  templates: WorkoutTemplate[];
+  navigate: (path: string) => void;
+  onSelectWorkout: (workout: Workout) => void;
+  onSelectWorkoutType: (type: string) => void;
+  onLogManual: () => void;
+}
+
+interface WorkoutTypeViewProps {
+  onSelectType: (type: string) => void;
+  onBack: () => void;
+}
+
+interface ExerciseSelectionViewProps {
+  workoutType: string;
+  selectedExercises: Exercise[];
+  onSelectExercise: (exercise: Exercise) => void;
+  onCreateWorkout: () => void;
+  onBack: () => void;
+}
+
+interface DetailViewProps {
+  workout: Workout;
+  onStart: () => void;
+  onBack: () => void;
+  onUpdateExercise: (index: number, field: string, value: string | number) => void;
+}
+
+interface ActiveViewProps {
+  workout: Workout;
+  timeElapsed: number;
+  isTimerRunning: boolean;
+  formatTime: (seconds: number) => string;
+  onPause: () => void;
+  onPlay: () => void;
+  onToggleSet: (exerciseIndex: number, setIndex: number) => void;
+  onFinish: () => void;
+  onBack: () => void;
+}
+
+interface SummaryViewProps {
+  workout: Workout;
+  onClose: () => void;
+  dailyGoal: number;
+}
+
+interface ManualLogModalProps {
+  onClose: () => void;
+  onSave: (workout: Workout) => void;
+}
 
 // --- HELPER DATA & DEFAULTS ---
 const workoutTypeIcons: { [key: string]: React.ElementType } = { cardio: Zap, strength: Dumbbell, yoga: BrainCircuit, hiit: Wind, default: Dumbbell };
@@ -81,8 +134,8 @@ export default function Workouts() {
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'selection' | 'type' | 'exercises' | 'detail' | 'active' | 'summary'>('selection');
     const [selectedWorkoutType, setSelectedWorkoutType] = useState<string | null>(null);
-    const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
-    const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
+    const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+    const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
     const [finishedWorkout, setFinishedWorkout] = useState<Workout | null>(null);
     const [showLogModal, setShowLogModal] = useState(false);
     const [timeElapsed, setTimeElapsed] = useState(0);
@@ -127,7 +180,7 @@ export default function Workouts() {
         setView('exercises');
     };
     
-    const handleSelectExercise = (exercise: any) => {
+    const handleSelectExercise = (exercise: Exercise) => {
         const isSelected = selectedExercises.some(ex => (ex.name || ex.exercise_name) === exercise.name);
         if (isSelected) {
             setSelectedExercises(prev => prev.filter(ex => (ex.name || ex.exercise_name) !== exercise.name));
@@ -150,7 +203,7 @@ export default function Workouts() {
     };
     
     const handleSelectWorkout = (workout: Partial<WorkoutTemplate>) => { 
-        setSelectedWorkout({ ...workout, exercises: workout.exercises?.map(ex => ({ ...ex, completed: Array(ex.sets || 0).fill(false) })) }); 
+        setSelectedWorkout({ ...workout, exercises: workout.exercises?.map(ex => ({ ...ex, completed: Array(ex.sets ?? 0).fill(false) })) }); 
         setView('detail'); 
     };
     const handleStartSession = () => { 
@@ -163,7 +216,7 @@ export default function Workouts() {
         setSelectedWorkout({ ...selectedWorkout, exercises: newExercises }); 
     };
     
-    const calculateCaloriesBurned = (exercises: any[], durationMinutes: number, weightKg: number) => {
+    const calculateCaloriesBurned = (exercises: Exercise[], durationMinutes: number, weightKg: number) => {
         let totalCalories = 0;
         
         exercises.forEach(exercise => {
@@ -189,7 +242,7 @@ export default function Workouts() {
         if (!selectedWorkout) return;
         pauseTimer();
         const durationMinutes = Math.max(1, Math.round(timeElapsed / 60));
-        const weightKg = (profile?.weight_goal_kg || 70) || 70; // Use weight goal or default to 70kg
+        const weightKg = profile?.weight_goal_kg ?? 70; // Use weight goal or default to 70kg
         const caloriesBurned = calculateCaloriesBurned(selectedWorkout.exercises, durationMinutes, weightKg);
         
         const finalWorkout = { 
@@ -199,7 +252,12 @@ export default function Workouts() {
             calories_burned: caloriesBurned, 
             workout_date: new Date().toISOString() 
         };
-        finalWorkout.exercises = finalWorkout.exercises.map(({ completed, ...rest }: any) => rest);
+        finalWorkout.exercises = finalWorkout.exercises.map((exercise: WorkoutExercise & { completed?: boolean[] }) => {
+            // Remove completed field from exercises before saving
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { completed, ...rest } = exercise;
+            return rest;
+        });
 
         try {
             await axios.post("/api/workouts", finalWorkout, { withCredentials: true });
@@ -256,7 +314,7 @@ export default function Workouts() {
 
 const pageVariants = { initial: { opacity: 0, x: 50 }, in: { opacity: 1, x: 0 }, out: { opacity: 0, x: -50 } };
 
-function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelectWorkoutType, onLogManual }: any) {
+function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelectWorkoutType, onLogManual }: SelectionViewProps) {
     const processWorkoutDataForChart = () => {
         const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return { date: d.toISOString().split('T')[0], name: d.toLocaleDateString('en-US', { weekday: 'short' }), workouts: 0 }; }).reverse();
         workouts.forEach((w: Workout) => { const d = new Date(w.workout_date).toISOString().split('T')[0]; const day = last7Days.find(day => day.date === d); if (day) day.workouts++; });
@@ -300,7 +358,7 @@ function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelec
     );
 }
 
-function WorkoutTypeView({ onSelectType, onBack }: any) {
+function WorkoutTypeView({ onSelectType, onBack }: WorkoutTypeViewProps) {
     return (
         <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.3 }} className="space-y-8">
             <div className="flex items-center space-x-4 mb-6">
@@ -332,7 +390,7 @@ function WorkoutTypeView({ onSelectType, onBack }: any) {
     );
 }
 
-function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercise, onCreateWorkout, onBack }: any) {
+function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercise, onCreateWorkout, onBack }: ExerciseSelectionViewProps) {
     const exercises = EXERCISE_LIBRARY[workoutType as keyof typeof EXERCISE_LIBRARY] || [];
     const workoutTypeInfo = WORKOUT_TYPES.find(t => t.id === workoutType);
     
@@ -357,8 +415,8 @@ function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercis
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[50vh] overflow-y-auto">
-                    {exercises.map((exercise: any, index: number) => {
-                        const isSelected = selectedExercises.some((ex: any) => (ex.name || ex.exercise_name) === exercise.name);
+                    {exercises.map((exercise: Exercise, index: number) => {
+                        const isSelected = selectedExercises.some((ex: Exercise) => (ex.name || ex.exercise_name) === exercise.name);
                         return (
                             <motion.button
                                 key={index}
@@ -411,7 +469,7 @@ function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercis
     );
 }
 
-function DetailView({ workout, onStart, onBack, onUpdateExercise }: any) {
+function DetailView({ workout, onStart, onBack, onUpdateExercise }: DetailViewProps) {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [tempExercise, setTempExercise] = useState<Partial<Exercise>>({});
     
@@ -446,7 +504,7 @@ function DetailView({ workout, onStart, onBack, onUpdateExercise }: any) {
             </div>
             
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {workout.exercises.map((ex: any, i: number) => (
+                {workout.exercises.map((ex: WorkoutExercise, i: number) => (
                     <div key={i} className="p-4 bg-gray-50 rounded-lg border">
                     {editingIndex === i ? (
                             <div className="space-y-4">
@@ -556,32 +614,32 @@ function DetailView({ workout, onStart, onBack, onUpdateExercise }: any) {
     );
 }
 
-function ActiveView({ workout, timeElapsed, isTimerRunning, formatTime, onPause, onPlay, onToggleSet, onFinish, onBack }: any) {
+function ActiveView({ workout, timeElapsed, isTimerRunning, formatTime, onPause, onPlay, onToggleSet, onFinish, onBack }: ActiveViewProps) {
     return (
         <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.3 }} className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-6">
             <div className="flex justify-between items-center mb-6 border-b pb-4"><h1 className="text-3xl font-bold">{workout.name}</h1><div className="flex items-center space-x-4 p-4 bg-gray-900 text-white rounded-xl shadow-2xl"><Timer size={32} /><div className="text-4xl font-mono">{formatTime(timeElapsed)}</div>{isTimerRunning ? (<button onClick={onPause} className="p-3 bg-yellow-400 text-yellow-900 rounded-full"><Pause size={24} /></button>) : (<button onClick={onPlay} className="p-3 bg-green-400 text-green-900 rounded-full"><Play size={24} /></button>)}</div></div>
-            <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2">{workout.exercises.map((ex: any, exIndex: number) => (<motion.div key={exIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: exIndex * 0.1 }} className="bg-white/50 p-4 rounded-lg shadow"><h3 className="font-bold text-xl">{ex.name || ex.exercise_name}</h3><p className="text-sm text-gray-500">{ex.sets} sets x {ex.reps} reps</p><div className="flex flex-wrap gap-3 mt-4">{ex.completed.map((isDone: boolean, setIndex: number) => (<motion.button key={setIndex} onClick={() => onToggleSet(exIndex, setIndex)} className={`w-14 h-14 rounded-full flex items-center justify-center font-bold border-2 ${isDone ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`} whileTap={{ scale: 0.9 }}>{isDone ? <CheckSquare size={24} /> : setIndex + 1}</motion.button>))}</div></motion.div>))}</div>
+            <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2">{workout.exercises.map((ex: WorkoutExercise & { completed?: boolean[] }, exIndex: number) => (<motion.div key={exIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: exIndex * 0.1 }} className="bg-white/50 p-4 rounded-lg shadow"><h3 className="font-bold text-xl">{ex.name || ex.exercise_name}</h3><p className="text-sm text-gray-500">{ex.sets} sets x {ex.reps} reps</p><div className="flex flex-wrap gap-3 mt-4">{(ex.completed || []).map((isDone: boolean, setIndex: number) => (<motion.button key={setIndex} onClick={() => onToggleSet(exIndex, setIndex)} className={`w-14 h-14 rounded-full flex items-center justify-center font-bold border-2 ${isDone ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`} whileTap={{ scale: 0.9 }}>{isDone ? <CheckSquare size={24} /> : setIndex + 1}</motion.button>))}</div></motion.div>))}</div>
             <div className="mt-8 flex justify-between items-center"><button onClick={onBack} className="text-gray-600 font-semibold">Back</button><button onClick={onFinish} className="bg-green-600 text-white font-bold px-8 py-4 rounded-lg flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform"><Square size={20} /><span>Finish & Save</span></button></div>
         </motion.div>
     );
 }
 
-function SummaryView({ workout, onClose, dailyGoal }: any) {
-    const totalVolume = workout.exercises.reduce((sum: number, ex: any) => {
+function SummaryView({ workout, onClose, dailyGoal }: SummaryViewProps) {
+    const totalVolume = workout.exercises.reduce((sum: number, ex: WorkoutExercise) => {
         const sets = 'sets' in ex ? ex.sets || 0 : 0;
         const reps = 'reps' in ex ? ex.reps || 0 : 0;
         const weight = ('weight' in ex ? ex.weight : ex.weight_kg) || 0;
         return sum + (sets * reps * weight);
     }, 0);
-    const totalSets = workout.exercises.reduce((sum: number, ex: any) => sum + ('sets' in ex ? ex.sets || 0 : 0), 0);
-    const completedSets = workout.exercises.reduce((sum: number, ex: any) => sum + (ex.completed?.filter((c: boolean) => c).length || 0), 0);
+    const totalSets = workout.exercises.reduce((sum: number, ex: WorkoutExercise) => sum + (ex.sets || 0), 0);
+    const completedSets = workout.exercises.reduce((sum: number, ex: WorkoutExercise & { completed?: boolean[] }) => sum + (ex.completed?.filter((c: boolean) => c).length || 0), 0);
     
     const chartData = [
         { name: 'Calories Burned', value: workout.calories_burned, fill: '#3B82F6' },
         { name: 'Remaining Goal', value: Math.max(0, dailyGoal - workout.calories_burned), fill: '#E5E7EB' }
     ];
     
-    const exerciseData = workout.exercises.map((ex: any) => {
+    const exerciseData = workout.exercises.map((ex: WorkoutExercise) => {
         const sets = 'sets' in ex ? ex.sets || 0 : 0;
         const reps = 'reps' in ex ? ex.reps || 0 : 0;
         const weight = ('weight' in ex ? ex.weight : ex.weight_kg) || 0;
@@ -632,7 +690,7 @@ function SummaryView({ workout, onClose, dailyGoal }: any) {
                     Exercise Breakdown
                 </h2>
                 <div className="space-y-3">
-                    {exerciseData.map((ex: any, index: number) => (
+                    {exerciseData.map((ex: WorkoutExercise, index: number) => (
                         <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <div>
                                 <h3 className="font-semibold">{ex.name}</h3>
@@ -683,7 +741,7 @@ function SummaryView({ workout, onClose, dailyGoal }: any) {
 }
 
 // --- THIS IS THE FIX: The full ManualLogModal component is now included and functional ---
-function ManualLogModal({ onClose, onSave }: any) {
+function ManualLogModal({ onClose, onSave }: ManualLogModalProps) {
     const [manualData, setManualData] = useState<Partial<Workout>>(initialWorkoutState);
     const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setManualData(p => ({ ...p, [e.target.name]: e.target.value }));
     const handleExChange = (i: number, f: string, v: string | number) => { const exs = [...(manualData.exercises || [])]; exs[i] = { ...exs[i], [f]: v }; setManualData(p => ({ ...p, exercises: exs })); };

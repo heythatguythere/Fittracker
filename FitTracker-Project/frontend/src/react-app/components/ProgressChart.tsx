@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 interface DataPoint {
   date: string;
   value: number;
-  [key: string]: any;
+  [key: string]: string | number;
 }
 
 interface ProgressChartProps {

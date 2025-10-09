@@ -87,8 +87,8 @@ export const ExerciseSchema = z.object({
 
 export type Exercise = z.infer<typeof ExerciseSchema>;
 
-// Workout Exercise Schema
-export const WorkoutExerciseSchema = z.object({
+// Extended Workout Exercise Schema for templates and detailed exercises
+export const ExtendedWorkoutExerciseSchema = z.object({
   id: z.number().optional(),
   workout_id: z.number().optional(),
   exercise_id: z.number().optional(),
@@ -108,6 +108,7 @@ export const WorkoutExerciseSchema = z.object({
 });
 
 export type WorkoutExercise = z.infer<typeof WorkoutExerciseSchema>;
+export type ExtendedWorkoutExercise = z.infer<typeof ExtendedWorkoutExerciseSchema>;
 
 // Measurement Schema
 export const MeasurementSchema = z.object({

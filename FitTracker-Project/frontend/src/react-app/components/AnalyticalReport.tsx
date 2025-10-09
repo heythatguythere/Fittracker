@@ -367,7 +367,7 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
             Goal Progress
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {goals.map((goal, index) => {
+            {goals.map((goal) => {
               const progress = goal.goal_type === 'weight' && measurements.length > 0
                 ? Math.min(100, Math.max(0, ((measurements[measurements.length - 1].weight_kg || 0) - goal.start_value!) / (goal.target_value - goal.start_value!) * 100))
                 : goal.goal_type === 'workout_frequency'

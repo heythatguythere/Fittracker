@@ -1,5 +1,4 @@
 import { Activity, Chrome, ArrowRight, UserCog, Loader2, Mail, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useState, FormEvent } from "react";
 import axios from "axios";
 import { useAuth } from "../AuthContext"; // Ensure path is correct
@@ -10,7 +9,6 @@ import { motion } from "framer-motion";
 const AdminDashboard = () => { /* ... Admin Dashboard JSX ... */ return <div>Admin Dashboard</div>; };
 
 export default function Login() {
-    const navigate = useNavigate();
     const { login } = useAuth();
     const [isLoginView, setIsLoginView] = useState(true);
     const [isAdminView, setIsAdminView] = useState(false);
@@ -42,8 +40,15 @@ export default function Login() {
             } else {
                  setError("Authentication successful, but no user data was returned.");
             }
-        } catch (err: any) {
-            setError(err.response?.data?.msg || "Authentication failed. Please check your credentials.");
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error && 'response' in err && 
+                typeof err.response === 'object' && err.response !== null && 
+                'data' in err.response && typeof err.response.data === 'object' && 
+                err.response.data !== null && 'msg' in err.response.data &&
+                typeof err.response.data.msg === 'string' 
+                ? err.response.data.msg 
+                : "Authentication failed. Please check your credentials.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }

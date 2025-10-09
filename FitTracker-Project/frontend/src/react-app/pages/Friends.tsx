@@ -7,7 +7,7 @@ import type { User, Workout, Measurement, DietEntry } from '../../shared/types';
 
 // --- Types for this component ---
 interface Friend extends User { totalWorkouts: number; totalCaloriesBurned: number; weeklyWorkouts: number; isCurrentUser: boolean; }
-interface FriendRequest extends Pick<User, '_id' | 'displayName' | 'email' | 'image'> {}
+type FriendRequest = Pick<User, '_id' | 'displayName' | 'email' | 'image'>;
 interface FriendProgress { friend: FriendRequest; workouts: Workout[]; measurements: Measurement[]; dietEntries: DietEntry[]; }
 
 export default function Friends() {
@@ -47,14 +47,21 @@ export default function Friends() {
         }
     };
 
-    const handleApiAction = async (action: () => Promise<any>, successMessage: string, errorMessage: string) => {
+    const handleApiAction = async (action: () => Promise<unknown>, successMessage: string, errorMessage: string) => {
         setActionError(null); setActionSuccess(null);
         try {
             await action();
             setActionSuccess(successMessage);
             fetchFriendsData();
-        } catch (err: any) {
-            setActionError(err.response?.data?.error || errorMessage);
+        } catch (err: unknown) {
+            const errorMsg = err instanceof Error && 'response' in err && 
+                typeof err.response === 'object' && err.response !== null && 
+                'data' in err.response && typeof err.response.data === 'object' && 
+                err.response.data !== null && 'error' in err.response.data &&
+                typeof err.response.data.error === 'string' 
+                ? err.response.data.error 
+                : errorMessage;
+            setActionError(errorMsg);
         } finally {
             setTimeout(() => { setActionError(null); setActionSuccess(null); }, 4000);
         }
@@ -66,7 +73,7 @@ export default function Friends() {
     const cancelOutgoing = (id: string) => handleApiAction(() => axios.delete(`/api/friends/cancel/${id}`, { withCredentials: true }), 'Friend request canceled.', 'Failed to cancel request.');
     const removeFriend = (id: string) => { if (window.confirm("Are you sure?")) handleApiAction(() => axios.delete(`/api/friends/remove/${id}`, { withCredentials: true }), 'Friend removed.', 'Failed to remove friend.'); };
     
-    const viewFriendProgress = async (friendId: string) => { try { const response = await axios.get(`/api/friends/${friendId}/progress`, { withCredentials: true }); setSelectedFriend(response.data); } catch (error) { setActionError('Failed to load friend progress'); } };
+    const viewFriendProgress = async (friendId: string) => { try { const response = await axios.get(`/api/friends/${friendId}/progress`, { withCredentials: true }); setSelectedFriend(response.data); } catch { setActionError('Failed to load friend progress'); } };
     const getRankIcon = (index: number) => { if (index === 0) return <Crown className="h-6 w-6 text-yellow-500" />; if (index === 1) return <Medal className="h-6 w-6 text-gray-400" />; if (index === 2) return <Award className="h-6 w-6 text-amber-600" />; return <span className="text-lg font-bold text-gray-600">#{index + 1}</span>; };
     
     const friendsList = leaderboard.filter(u => !u.isCurrentUser);
