@@ -2,7 +2,7 @@
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import axios from 'axios';
-import { User } from '../../shared/types'; // Adjust path if needed
+import { User } from '../shared/types';
 
 interface AuthContextType {
     user: User | null;

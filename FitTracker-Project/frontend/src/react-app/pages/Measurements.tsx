@@ -106,13 +106,15 @@ export default function Measurements() {
     // --- Safely calculate stats ---
     const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
     const initialMeasurement = measurements.length > 0 ? measurements[0] : null;
-    const weightChange = (latestMeasurement && initialMeasurement) ? (latestMeasurement.weight_kg - initialMeasurement.weight_kg).toFixed(1) : '0.0';
+    const weightChange = (latestMeasurement && initialMeasurement && latestMeasurement.weight_kg !== null && initialMeasurement.weight_kg !== null) 
+        ? (latestMeasurement.weight_kg - initialMeasurement.weight_kg).toFixed(1) 
+        : '0.0';
     const calculateBmi = (weightKg?: number, heightCm?: number) => {
         if (!weightKg || !heightCm) return null;
         const heightM = heightCm / 100;
         return (weightKg / (heightM * heightM)).toFixed(2);
     };
-    const bmi = calculateBmi(latestMeasurement?.weight_kg, profile?.height_cm);
+    const bmi = calculateBmi(latestMeasurement?.weight_kg || undefined, profile?.height_cm);
 
     if (loading) { return <Layout><div className="flex justify-center items-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div></Layout>; }
 
@@ -125,7 +127,7 @@ export default function Measurements() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Latest Weight" value={latestMeasurement ? `${latestMeasurement.weight_kg} kg` : 'N/A'} icon={<Weight />} />
+                    <StatCard title="Latest Weight" value={latestMeasurement && latestMeasurement.weight_kg !== null ? `${latestMeasurement.weight_kg} kg` : 'N/A'} icon={<Weight />} />
                     <StatCard title="Total Change" value={`${weightChange} kg`} icon={Number(weightChange) >= 0 ? <TrendingUp /> : <TrendingDown />} />
                     <StatCard title="BMI" value={bmi || 'N/A'} icon={<Scale />} />
                     <StatCard title="Body Fat %" value={latestMeasurement?.body_fat_percentage ? `${latestMeasurement.body_fat_percentage}%` : 'N/A'} icon={<Flame />} />

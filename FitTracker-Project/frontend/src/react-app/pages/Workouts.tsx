@@ -5,14 +5,25 @@ import { Plus, X, Pencil, Loader2, Dumbbell, Clock, Flame, Zap, Save, Play, Paus
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 import type { Workout, Exercise, UserProfile, WorkoutTemplate } from "../../shared/types";
+
+// Interface for workout in progress with completed tracking
+interface WorkoutInProgress extends Omit<Workout, 'exercises'> {
+    exercises: Array<{
+        exercise_name: string;
+        sets: number | null;
+        reps: number | null;
+        weight: number | null;
+        completed: boolean[];
+    }>;
+}
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
 
 // --- HELPER DATA & DEFAULTS ---
 const workoutTypeIcons: { [key: string]: React.ElementType } = { cardio: Zap, strength: Dumbbell, yoga: BrainCircuit, hiit: Wind, default: Dumbbell };
 const MET_VALUES: { [key:string]: number } = { strength: 5.0, cardio: 7.0, hiit: 8.0, yoga: 2.5, default: 4.0 };
-const blankExercise: Partial<Exercise> = { exercise_name: "", sets: 3, reps: 10, weight: 0 };
-const initialWorkoutState: Partial<Workout> = { name: "", workout_type: "strength", workout_date: new Date().toISOString().split('T')[0], duration_minutes: 0, exercises: [{...blankExercise}]};
+const blankExercise = { exercise_name: "", sets: 3, reps: 10, weight: 0 };
+const initialWorkoutState: Partial<Workout> = { name: "", workout_type: "strength", workout_date: new Date().toISOString().split('T')[0], duration_minutes: 0, exercises: [blankExercise]};
 
 // Enhanced workout types with exercise libraries
 const WORKOUT_TYPES = [
@@ -81,8 +92,8 @@ export default function Workouts() {
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'selection' | 'type' | 'exercises' | 'detail' | 'active' | 'summary'>('selection');
     const [selectedWorkoutType, setSelectedWorkoutType] = useState<string | null>(null);
-    const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
-    const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
+    const [selectedExercises, setSelectedExercises] = useState<{ exercise_name: string; sets: number; reps: number; weight: number; completed: boolean[] }[]>([]);
+    const [selectedWorkout, setSelectedWorkout] = useState<WorkoutInProgress | null>(null);
     const [finishedWorkout, setFinishedWorkout] = useState<Workout | null>(null);
     const [showLogModal, setShowLogModal] = useState(false);
     const [timeElapsed, setTimeElapsed] = useState(0);
@@ -128,29 +139,61 @@ export default function Workouts() {
     };
     
     const handleSelectExercise = (exercise: any) => {
-        const isSelected = selectedExercises.some(ex => (ex.name || ex.exercise_name) === exercise.name);
+        const isSelected = selectedExercises.some(ex => ex.exercise_name === exercise.name);
         if (isSelected) {
-            setSelectedExercises(prev => prev.filter(ex => (ex.name || ex.exercise_name) !== exercise.name));
+            setSelectedExercises(prev => prev.filter(ex => ex.exercise_name !== exercise.name));
         } else {
-            const setsCount = 'sets' in exercise ? exercise.sets : 0;
-            setSelectedExercises(prev => [...prev, { ...exercise, exercise_name: exercise.name, completed: Array(setsCount).fill(false) }]);
+            const setsCount = 'sets' in exercise ? exercise.sets : 3;
+            setSelectedExercises(prev => [...prev, { 
+                exercise_name: exercise.name, 
+                sets: exercise.sets || 3, 
+                reps: exercise.reps || 10, 
+                weight: exercise.weight_kg || 0, 
+                completed: Array(setsCount).fill(false) 
+            }]);
         }
     };
     
     const handleCreateWorkout = () => {
         const workoutType = WORKOUT_TYPES.find(t => t.id === selectedWorkoutType);
-        const workout = {
+        const workout: WorkoutInProgress = {
+            _id: '', // Will be set when saved
+            userId: user?._id || '',
             name: `${workoutType?.name} Workout`,
-            workout_type: selectedWorkoutType,
-            exercises: selectedExercises,
-            workout_date: new Date().toISOString().split('T')[0]
+            workout_type: selectedWorkoutType as 'cardio' | 'strength' | 'yoga' | 'group' | null,
+            duration_minutes: null,
+            calories_burned: null,
+            workout_date: new Date().toISOString().split('T')[0],
+            exercises: selectedExercises.map(ex => ({
+                exercise_name: ex.exercise_name,
+                sets: ex.sets,
+                reps: ex.reps,
+                weight: ex.weight,
+                completed: ex.completed
+            }))
         };
         setSelectedWorkout(workout);
         setView('detail');
     };
     
-    const handleSelectWorkout = (workout: Partial<WorkoutTemplate>) => { 
-        setSelectedWorkout({ ...workout, exercises: workout.exercises?.map(ex => ({ ...ex, completed: Array(ex.sets || 0).fill(false) })) }); 
+    const handleSelectWorkout = (workout: WorkoutTemplate) => { 
+        const workoutData: WorkoutInProgress = {
+            _id: workout._id,
+            userId: workout.userId,
+            name: workout.name,
+            workout_type: null,
+            duration_minutes: null,
+            calories_burned: null,
+            workout_date: new Date().toISOString().split('T')[0],
+            exercises: workout.exercises?.map(ex => ({
+                exercise_name: ex.exercise_name,
+                sets: ex.sets,
+                reps: ex.reps,
+                weight: ex.weight,
+                completed: Array(ex.sets || 0).fill(false)
+            })) || []
+        };
+        setSelectedWorkout(workoutData); 
         setView('detail'); 
     };
     const handleStartSession = () => { 
@@ -158,12 +201,13 @@ export default function Workouts() {
         startTimer();
     };
     const handleToggleSet = (exIndex: number, setIndex: number) => { 
+        if (!selectedWorkout) return;
         const newExercises = [...selectedWorkout.exercises]; 
         newExercises[exIndex].completed[setIndex] = !newExercises[exIndex].completed[setIndex]; 
         setSelectedWorkout({ ...selectedWorkout, exercises: newExercises }); 
     };
     
-    const calculateCaloriesBurned = (exercises: any[], durationMinutes: number, weightKg: number) => {
+    const calculateCaloriesBurned = (exercises: WorkoutInProgress['exercises'], durationMinutes: number, weightKg: number) => {
         let totalCalories = 0;
         
         exercises.forEach(exercise => {
@@ -192,14 +236,16 @@ export default function Workouts() {
         const weightKg = (profile?.weight_goal_kg || 70) || 70; // Use weight goal or default to 70kg
         const caloriesBurned = calculateCaloriesBurned(selectedWorkout.exercises, durationMinutes, weightKg);
         
-        const finalWorkout = { 
-            ...selectedWorkout, 
+        const finalWorkout: Workout = { 
+            _id: selectedWorkout._id,
+            userId: selectedWorkout.userId,
+            name: selectedWorkout.name,
             workout_type: selectedWorkout.workout_type, 
             duration_minutes: durationMinutes, 
             calories_burned: caloriesBurned, 
-            workout_date: new Date().toISOString() 
+            workout_date: new Date().toISOString(),
+            exercises: selectedWorkout.exercises.map(({ completed, ...rest }) => rest)
         };
-        finalWorkout.exercises = finalWorkout.exercises.map(({ completed, ...rest }: any) => rest);
 
         try {
             await axios.post("/api/workouts", finalWorkout, { withCredentials: true });
@@ -228,7 +274,8 @@ export default function Workouts() {
         setView('selection');
     };
     
-    const handleUpdateExercise = (exIndex: number, updatedExercise: Exercise) => {
+    const handleUpdateExercise = (exIndex: number, updatedExercise: Partial<WorkoutInProgress['exercises'][0]>) => {
+        if (!selectedWorkout) return;
         const newExercises = [...selectedWorkout.exercises];
         newExercises[exIndex] = { ...newExercises[exIndex], ...updatedExercise };
         setSelectedWorkout({...selectedWorkout, exercises: newExercises});
@@ -411,11 +458,16 @@ function ExerciseSelectionView({ workoutType, selectedExercises, onSelectExercis
     );
 }
 
-function DetailView({ workout, onStart, onBack, onUpdateExercise }: any) {
+function DetailView({ workout, onStart, onBack, onUpdateExercise }: { 
+    workout: WorkoutInProgress; 
+    onStart: () => void; 
+    onBack: () => void; 
+    onUpdateExercise: (exIndex: number, updatedExercise: Partial<WorkoutInProgress['exercises'][0]>) => void; 
+}) {
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [tempExercise, setTempExercise] = useState<Partial<Exercise>>({});
+    const [tempExercise, setTempExercise] = useState<Partial<WorkoutInProgress['exercises'][0]>>({});
     
-    const handleEditClick = (exercise: Exercise, index: number) => { 
+    const handleEditClick = (exercise: WorkoutInProgress['exercises'][0], index: number) => { 
         setEditingIndex(index); 
         setTempExercise({ ...exercise }); 
     };
@@ -556,37 +608,51 @@ function DetailView({ workout, onStart, onBack, onUpdateExercise }: any) {
     );
 }
 
-function ActiveView({ workout, timeElapsed, isTimerRunning, formatTime, onPause, onPlay, onToggleSet, onFinish, onBack }: any) {
+function ActiveView({ workout, timeElapsed, isTimerRunning, formatTime, onPause, onPlay, onToggleSet, onFinish, onBack }: { 
+    workout: WorkoutInProgress; 
+    timeElapsed: number; 
+    isTimerRunning: boolean; 
+    formatTime: (s: number) => string; 
+    onPause: () => void; 
+    onPlay: () => void; 
+    onToggleSet: (exIndex: number, setIndex: number) => void; 
+    onFinish: () => void; 
+    onBack: () => void; 
+}) {
     return (
         <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={{ duration: 0.3 }} className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border p-6">
             <div className="flex justify-between items-center mb-6 border-b pb-4"><h1 className="text-3xl font-bold">{workout.name}</h1><div className="flex items-center space-x-4 p-4 bg-gray-900 text-white rounded-xl shadow-2xl"><Timer size={32} /><div className="text-4xl font-mono">{formatTime(timeElapsed)}</div>{isTimerRunning ? (<button onClick={onPause} className="p-3 bg-yellow-400 text-yellow-900 rounded-full"><Pause size={24} /></button>) : (<button onClick={onPlay} className="p-3 bg-green-400 text-green-900 rounded-full"><Play size={24} /></button>)}</div></div>
-            <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2">{workout.exercises.map((ex: any, exIndex: number) => (<motion.div key={exIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: exIndex * 0.1 }} className="bg-white/50 p-4 rounded-lg shadow"><h3 className="font-bold text-xl">{ex.name || ex.exercise_name}</h3><p className="text-sm text-gray-500">{ex.sets} sets x {ex.reps} reps</p><div className="flex flex-wrap gap-3 mt-4">{ex.completed.map((isDone: boolean, setIndex: number) => (<motion.button key={setIndex} onClick={() => onToggleSet(exIndex, setIndex)} className={`w-14 h-14 rounded-full flex items-center justify-center font-bold border-2 ${isDone ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`} whileTap={{ scale: 0.9 }}>{isDone ? <CheckSquare size={24} /> : setIndex + 1}</motion.button>))}</div></motion.div>))}</div>
+            <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2">{workout.exercises.map((ex, exIndex: number) => (<motion.div key={exIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: exIndex * 0.1 }} className="bg-white/50 p-4 rounded-lg shadow"><h3 className="font-bold text-xl">{ex.exercise_name}</h3><p className="text-sm text-gray-500">{ex.sets} sets x {ex.reps} reps</p><div className="flex flex-wrap gap-3 mt-4">{ex.completed.map((isDone: boolean, setIndex: number) => (<motion.button key={setIndex} onClick={() => onToggleSet(exIndex, setIndex)} className={`w-14 h-14 rounded-full flex items-center justify-center font-bold border-2 ${isDone ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`} whileTap={{ scale: 0.9 }}>{isDone ? <CheckSquare size={24} /> : setIndex + 1}</motion.button>))}</div></motion.div>))}</div>
             <div className="mt-8 flex justify-between items-center"><button onClick={onBack} className="text-gray-600 font-semibold">Back</button><button onClick={onFinish} className="bg-green-600 text-white font-bold px-8 py-4 rounded-lg flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform"><Square size={20} /><span>Finish & Save</span></button></div>
         </motion.div>
     );
 }
 
-function SummaryView({ workout, onClose, dailyGoal }: any) {
-    const totalVolume = workout.exercises.reduce((sum: number, ex: any) => {
-        const sets = 'sets' in ex ? ex.sets || 0 : 0;
-        const reps = 'reps' in ex ? ex.reps || 0 : 0;
-        const weight = ('weight' in ex ? ex.weight : ex.weight_kg) || 0;
+function SummaryView({ workout, onClose, dailyGoal }: { 
+    workout: Workout; 
+    onClose: () => void; 
+    dailyGoal: number; 
+}) {
+    const totalVolume = workout.exercises.reduce((sum: number, ex) => {
+        const sets = ex.sets || 0;
+        const reps = ex.reps || 0;
+        const weight = ex.weight || 0;
         return sum + (sets * reps * weight);
     }, 0);
-    const totalSets = workout.exercises.reduce((sum: number, ex: any) => sum + ('sets' in ex ? ex.sets || 0 : 0), 0);
-    const completedSets = workout.exercises.reduce((sum: number, ex: any) => sum + (ex.completed?.filter((c: boolean) => c).length || 0), 0);
+    const totalSets = workout.exercises.reduce((sum: number, ex) => sum + (ex.sets || 0), 0);
+    const completedSets = workout.exercises.reduce((sum: number, ex) => sum + (ex.sets || 0), 0);
     
     const chartData = [
-        { name: 'Calories Burned', value: workout.calories_burned, fill: '#3B82F6' },
-        { name: 'Remaining Goal', value: Math.max(0, dailyGoal - workout.calories_burned), fill: '#E5E7EB' }
+        { name: 'Calories Burned', value: workout.calories_burned || 0, fill: '#3B82F6' },
+        { name: 'Remaining Goal', value: Math.max(0, dailyGoal - (workout.calories_burned || 0)), fill: '#E5E7EB' }
     ];
     
-    const exerciseData = workout.exercises.map((ex: any) => {
-        const sets = 'sets' in ex ? ex.sets || 0 : 0;
-        const reps = 'reps' in ex ? ex.reps || 0 : 0;
-        const weight = ('weight' in ex ? ex.weight : ex.weight_kg) || 0;
+    const exerciseData = workout.exercises.map((ex) => {
+        const sets = ex.sets || 0;
+        const reps = ex.reps || 0;
+        const weight = ex.weight || 0;
         return {
-            name: ex.name || ex.exercise_name,
+            name: ex.exercise_name,
             sets: sets,
             reps: reps,
             weight: weight,

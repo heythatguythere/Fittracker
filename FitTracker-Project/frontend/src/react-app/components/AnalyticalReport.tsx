@@ -70,11 +70,18 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
   const processWeightData = () => {
     return measurements
       .filter(m => m.weight_kg !== null)
-      .map(m => ({
-        date: new Date(m.measurement_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        weight: m.weight_kg,
-        bmi: m.bmi || 0
-      }))
+      .map(m => {
+        // Calculate BMI if height is available
+        const bmi = profile?.height_cm && m.weight_kg 
+          ? m.weight_kg / Math.pow((profile.height_cm / 100), 2)
+          : 0;
+        
+        return {
+          date: new Date(m.measurement_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          weight: m.weight_kg,
+          bmi: bmi
+        };
+      })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
 
@@ -103,7 +110,7 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
     
     workouts.forEach(workout => {
       workout.exercises?.forEach(exercise => {
-        const name = exercise.exercise_name || exercise.name || 'Unknown';
+        const name = exercise.exercise_name || 'Unknown';
         exerciseCounts[name] = (exerciseCounts[name] || 0) + 1;
       });
     });
@@ -317,12 +324,12 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="count"
               >
-                {exerciseData.map((entry, index) => (
+                {exerciseData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -376,7 +383,7 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
 
               return (
                 <div key={goal._id} className="text-center">
-                  <h4 className="font-semibold text-gray-800 mb-2">{goal.goal_name}</h4>
+                  <h4 className="font-semibold text-gray-800 mb-2">{goal.description}</h4>
                   <div className="relative w-32 h-32 mx-auto mb-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={[{ value: progress }]}>
