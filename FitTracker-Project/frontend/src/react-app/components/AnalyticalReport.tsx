@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
-// FINAL FIX: Added Legend to recharts imports
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { motion } from 'framer-motion';
 import { TrendingUp, Target, HeartPulse, Flame, Cake, Info } from 'lucide-react';
-// Note: I'm using UserProfile as defined in your new types.ts
 import type { Workout, Measurement, DietEntry, Goal, UserProfile } from '../../shared/types';
 
 interface AnalyticalReportProps {
@@ -11,7 +9,6 @@ interface AnalyticalReportProps {
     measurements: Measurement[];
     dietEntries: DietEntry[];
     goals: Goal[];
-    // Renamed prop to 'profile' to match your new code
     profile: UserProfile | null;
 }
 
@@ -87,21 +84,21 @@ export default function AnalyticalReport({ workouts, measurements, dietEntries, 
                      <h3 className="font-bold text-lg mb-4">Macronutrient Distribution (g)</h3>
                     <ResponsiveContainer width="100%" height="100%">
                          <PieChart>
-                             <Pie
-                                 data={macroPieData}
-                                 cx="50%"
-                                 cy="40%" // Adjusted to make space for Legend at the bottom
-                                 innerRadius={70}
-                                 outerRadius={100}
-                                 fill="#8884d8"
-                                 dataKey="value"
-                                 paddingAngle={5}
-                             >
-                                 {macroPieData.map((_, index) => (
-                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                 ))}
-                             </Pie>
-                             <Legend />
+                            <Pie
+                                data={macroPieData}
+                                cx="50%"
+                                cy="40%" // Adjusted to make space for Legend at the bottom
+                                innerRadius={70}
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                                paddingAngle={5}
+                            >
+                                {macroPieData.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Legend />
                          </PieChart>
                     </ResponsiveContainer>
                 </div>
