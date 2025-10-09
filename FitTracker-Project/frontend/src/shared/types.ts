@@ -1,5 +1,7 @@
 import z from "zod";
 
+// Updated types to match backend MongoDB schema
+
 // User Schema
 export const UserSchema = z.object({
   _id: z.string(),
@@ -12,6 +14,7 @@ export const UserSchema = z.object({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
+
 export type User = z.infer<typeof UserSchema>;
 
 // User Profile Schema
@@ -32,9 +35,33 @@ export const UserProfileSchema = z.object({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
+
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
-// Consolidated Exercise Schema
+// Workout Schema
+export const WorkoutExerciseSchema = z.object({
+  exercise_name: z.string(),
+  sets: z.number().nullable(),
+  reps: z.number().nullable(),
+  weight: z.number().nullable(),
+});
+
+export const WorkoutSchema = z.object({
+  _id: z.string(),
+  userId: z.string(),
+  name: z.string(),
+  workout_type: z.enum(['cardio', 'strength', 'yoga', 'group']).nullable(),
+  duration_minutes: z.number().nullable(),
+  calories_burned: z.number().nullable(),
+  workout_date: z.string(),
+  exercises: z.array(WorkoutExerciseSchema),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type Workout = z.infer<typeof WorkoutSchema>;
+
+// Exercise Schema
 export const ExerciseSchema = z.object({
   id: z.number().optional(),
   name: z.string().optional(),
@@ -44,6 +71,7 @@ export const ExerciseSchema = z.object({
   description: z.string().nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  // Workout exercise specific fields
   sets: z.number().nullable().optional(),
   reps: z.number().nullable().optional(),
   weight: z.number().nullable().optional(),
@@ -56,22 +84,30 @@ export const ExerciseSchema = z.object({
   met: z.number().optional(),
   completed: z.array(z.boolean()).optional(),
 });
+
 export type Exercise = z.infer<typeof ExerciseSchema>;
 
-// Workout Schema
-export const WorkoutSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  workout_type: z.enum(['cardio', 'strength', 'yoga', 'group']).nullable(),
-  duration_minutes: z.number().nullable(),
-  calories_burned: z.number().nullable(),
-  workout_date: z.string(),
-  exercises: z.array(ExerciseSchema),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
+// Workout Exercise Schema
+export const WorkoutExerciseSchema = z.object({
+  id: z.number().optional(),
+  workout_id: z.number().optional(),
+  exercise_id: z.number().optional(),
+  sets: z.number().nullable().optional(),
+  reps: z.number().nullable().optional(),
+  weight: z.number().nullable().optional(),
+  weight_kg: z.number().nullable().optional(),
+  rest_seconds: z.number().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+  name: z.string().optional(),
+  exercise_name: z.string().optional(),
+  duration_minutes: z.number().nullable().optional(),
+  met: z.number().optional(),
+  completed: z.array(z.boolean()).optional(),
 });
-export type Workout = z.infer<typeof WorkoutSchema>;
+
+export type WorkoutExercise = z.infer<typeof WorkoutExerciseSchema>;
 
 // Measurement Schema
 export const MeasurementSchema = z.object({
@@ -85,11 +121,11 @@ export const MeasurementSchema = z.object({
   notes: z.string().nullable(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-  bmi: z.number().optional(),
 });
+
 export type Measurement = z.infer<typeof MeasurementSchema>;
 
-// Diet Entry Schema
+// Diet Entry Schema - Updated to match MongoDB backend
 export const DietEntrySchema = z.object({
   _id: z.string(),
   userId: z.string(),
@@ -106,23 +142,10 @@ export const DietEntrySchema = z.object({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
+
 export type DietEntry = z.infer<typeof DietEntrySchema>;
 
-// Goal Schema
-export const GoalSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  goal_name: z.string().optional(),
-  description: z.string(),
-  goal_type: z.enum(['weight', 'workout_frequency']),
-  start_value: z.number().nullable(),
-  target_value: z.number(),
-  target_date: z.string().nullable(),
-  is_active: z.boolean(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
-export type Goal = z.infer<typeof GoalSchema>;
+// Force TypeScript refresh
 
 // API Request Schemas
 export const CreateUserProfileSchema = z.object({
@@ -133,7 +156,6 @@ export const CreateUserProfileSchema = z.object({
   activity_level: z.enum(['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extra_active']).optional(),
   fitness_goals: z.string().optional(),
 });
-export type CreateUserProfile = z.infer<typeof CreateUserProfileSchema>;
 
 export const CreateWorkoutSchema = z.object({
   name: z.string(),
@@ -142,7 +164,6 @@ export const CreateWorkoutSchema = z.object({
   duration_minutes: z.number().optional(),
   calories_burned: z.number().optional(),
 });
-export type CreateWorkout = z.infer<typeof CreateWorkoutSchema>;
 
 export const CreateWorkoutExerciseSchema = z.object({
   exercise_id: z.number(),
@@ -152,7 +173,6 @@ export const CreateWorkoutExerciseSchema = z.object({
   rest_seconds: z.number().optional(),
   notes: z.string().optional(),
 });
-export type CreateWorkoutExercise = z.infer<typeof CreateWorkoutExerciseSchema>;
 
 export const CreateMeasurementSchema = z.object({
   measurement_date: z.string(),
@@ -165,7 +185,6 @@ export const CreateMeasurementSchema = z.object({
   thigh_cm: z.number().optional(),
   notes: z.string().optional(),
 });
-export type CreateMeasurement = z.infer<typeof CreateMeasurementSchema>;
 
 export const CreateDietEntrySchema = z.object({
   entry_date: z.string(),
@@ -179,6 +198,11 @@ export const CreateDietEntrySchema = z.object({
   fat_g: z.number().optional(),
   notes: z.string().optional(),
 });
+
+export type CreateUserProfile = z.infer<typeof CreateUserProfileSchema>;
+export type CreateWorkout = z.infer<typeof CreateWorkoutSchema>;
+export type CreateWorkoutExercise = z.infer<typeof CreateWorkoutExerciseSchema>;
+export type CreateMeasurement = z.infer<typeof CreateMeasurementSchema>;
 export type CreateDietEntry = z.infer<typeof CreateDietEntrySchema>;
 
 // Meal Suggestion Schema
@@ -190,7 +214,24 @@ export const MealSuggestionSchema = z.object({
   carbs_g: z.number(),
   fat_g: z.number(),
 });
+
 export type MealSuggestion = z.infer<typeof MealSuggestionSchema>;
+
+// Goal Schema
+export const GoalSchema = z.object({
+  _id: z.string(),
+  userId: z.string(),
+  description: z.string(),
+  goal_type: z.enum(['weight', 'workout_frequency']),
+  start_value: z.number().nullable(),
+  target_value: z.number(),
+  target_date: z.string().nullable(),
+  is_active: z.boolean(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type Goal = z.infer<typeof GoalSchema>;
 
 // Workout Template Schema
 export const ExerciseTemplateSchema = z.object({
@@ -200,7 +241,6 @@ export const ExerciseTemplateSchema = z.object({
   weight: z.number().nullable(),
   duration_minutes: z.number().nullable().optional(),
 });
-export type ExerciseTemplate = z.infer<typeof ExerciseTemplateSchema>;
 
 export const WorkoutTemplateSchema = z.object({
   _id: z.string(),
@@ -211,4 +251,6 @@ export const WorkoutTemplateSchema = z.object({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
+
 export type WorkoutTemplate = z.infer<typeof WorkoutTemplateSchema>;
+export type ExerciseTemplate = z.infer<typeof ExerciseTemplateSchema>;

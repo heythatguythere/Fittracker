@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Dumbbell, ShieldCheck, Star, Zap } from "lucide-react";
+import { ArrowRight, BarChart3, Dumbbell, ShieldCheck, Star, Zap } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import * as THREE from "three";
 

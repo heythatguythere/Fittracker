@@ -1,68 +1,56 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { User } from '../shared/types';
-import { useNavigate } from 'react-router-dom';
-import api from './api'; // IMPORT our new configured api client
+// In src/react-app/AuthContext.tsx
+
+import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import axios from 'axios';
+import { User } from '../../shared/types'; // Adjust path if needed
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    signup: (email: string, password: string, displayName: string) => Promise<void>;
-    logout: () => void;
+    login: (userData: User) => void;
+    logout: () => Promise<void>; // Make it return a promise
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     useEffect(() => {
-        const checkUser = async () => {
-            try {
-                // USE the new 'api' client instead of 'axios'
-                const res = await api.get('/api/current_user');
-                setUser(res.data);
-            } catch (error) {
-                setUser(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkUser();
+        axios.get('/api/current_user', { withCredentials: true })
+            .then(res => {
+                if (res.data) setUser(res.data);
+            })
+            .catch(() => setUser(null))
+            .finally(() => setLoading(false));
     }, []);
 
-    const login = async (email: string, password: string) => {
-        // USE the new 'api' client
-        const res = await api.post('/auth/login', { email, password });
-        setUser(res.data.user);
+    const login = (userData: User) => {
+        setUser(userData);
     };
 
-    const signup = async (email: string, password: string, displayName: string) => {
-        // USE the new 'api' client
-        const res = await api.post('/auth/register', { email, password, displayName });
-        setUser(res.data.user);
-    };
-
+    // --- THIS IS THE FIX ---
+    // Make the logout function async so we can await it
     const logout = async () => {
-        // USE the new 'api' client
-        await api.get('/auth/logout');
-        setUser(null);
-        navigate('/login');
+        try {
+            await axios.get('/auth/logout', { withCredentials: true });
+            setUser(null); // Clear the user state
+        } catch (error) {
+            console.error("Logout API call failed:", error);
+            setUser(null); // Clear the user state even if the call fails
+        }
     };
 
-    return (
-        <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+    const value = { user, loading, login, logout };
 
-export const useAuth = () => {
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
-};
+}

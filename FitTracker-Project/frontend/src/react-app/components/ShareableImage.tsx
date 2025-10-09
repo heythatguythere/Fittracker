@@ -1,106 +1,282 @@
-import { useRef, useState } from 'react';
-import { toPng } from 'html-to-image';
-import { Download, Loader2, BarChart3, TrendingUp, Flame, Zap } from 'lucide-react';
-import { useAuth } from '../AuthContext';
-import type { Workout, Measurement, DietEntry, Goal } from '../../shared/types';
+import React, { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Download, 
+  Share2, 
+  X, 
+  Instagram, 
+  Facebook, 
+  Twitter,
+  Linkedin,
+  MessageCircle
+} from 'lucide-react';
+import type { UserProfile, Workout, Measurement, DietEntry, Goal } from '../../shared/types';
 
 interface ShareableImageProps {
-    workouts: Workout[];
-    measurements: Measurement[];
-    dietEntries: DietEntry[];
-    goals: Goal[];
+  profile: UserProfile | null;
+  workouts: Workout[];
+  measurements: Measurement[];
+  dietEntries: DietEntry[];
+  goals: Goal[];
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export default function ShareableImage({ workouts, measurements }: ShareableImageProps) {
-    const { user } = useAuth();
-    const imageRef = useRef<HTMLDivElement>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
+const ShareableImage: React.FC<ShareableImageProps> = ({
+  profile,
+  workouts,
+  measurements,
+  dietEntries,
+  goals,
+  isOpen,
+  onClose
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-    // --- Data Aggregation ---
-    const totalWorkouts = workouts.length;
-    const totalCaloriesBurned = workouts.reduce((sum, w) => sum + (w.calories_burned ?? 0), 0);
+  // Calculate key metrics
+  const totalWorkouts = workouts.length;
+  const totalCaloriesBurned = workouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
+  const latestWeight = measurements.length > 0 ? measurements[0].weight_kg : null;
+  const initialWeight = measurements.length > 0 ? measurements[measurements.length - 1].weight_kg : null;
+  const weightChange = latestWeight && initialWeight ? (latestWeight - initialWeight).toFixed(1) : null;
+  
+  const weeklyWorkouts = workouts.filter(w => {
+    const workoutDate = new Date(w.workout_date);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return workoutDate >= weekAgo;
+  }).length;
+
+  const userName = profile?.first_name || 'Fitness Enthusiast';
+  const currentDate = new Date().toLocaleDateString();
+
+  const generateImage = async () => {
+    if (!canvasRef.current) return;
     
-    const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
-    const initialMeasurement = measurements.length > 0 ? measurements[0] : null;
-    const weightChange = initialMeasurement && latestMeasurement ? (latestMeasurement.weight_kg ?? 0) - (initialMeasurement.weight_kg ?? 0) : 0;
+    setIsGenerating(true);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    canvas.width = 800;
+    canvas.height = 1000;
+
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(1, '#764ba2');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Header
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏋️ Fitness Progress', canvas.width / 2, 80);
+
+    // User name and date
+    ctx.font = '24px Arial';
+    ctx.fillText(`${userName}'s Journey`, canvas.width / 2, 130);
+    ctx.fillText(currentDate, canvas.width / 2, 160);
+
+    // Stats section
+    const stats = [
+      { label: 'Workouts', value: totalWorkouts.toString(), icon: '💪' },
+      { label: 'Calories Burned', value: totalCaloriesBurned.toLocaleString(), icon: '🔥' },
+      { label: 'This Week', value: `${weeklyWorkouts} sessions`, icon: '📅' },
+    ];
+
+    if (weightChange !== null) {
+      const changeDirection = parseFloat(weightChange) > 0 ? 'gained' : 'lost';
+      stats.push({ 
+        label: 'Weight Change', 
+        value: `${Math.abs(parseFloat(weightChange))}kg ${changeDirection}`, 
+        icon: '⚖️' 
+      });
+    }
+
+    // Draw stats
+    const statWidth = 150;
+    const statHeight = 120;
+    const startX = (canvas.width - (stats.length * statWidth)) / 2;
+    const startY = 220;
+
+    stats.forEach((stat, index) => {
+      const x = startX + (index * statWidth);
+      const y = startY;
+
+      // Stat box background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(x, y, statWidth - 20, statHeight);
+
+      // Icon
+      ctx.font = '32px Arial';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.fillText(stat.icon, x + (statWidth - 20) / 2, y + 40);
+
+      // Value
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText(stat.value, x + (statWidth - 20) / 2, y + 70);
+
+      // Label
+      ctx.font = '14px Arial';
+      ctx.fillText(stat.label, x + (statWidth - 20) / 2, y + 90);
+    });
+
+    // Motivational message
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('Keep pushing forward! 💪', canvas.width / 2, 450);
+
+    // Hashtags
+    ctx.font = '18px Arial';
+    ctx.fillText('#FitnessJourney #WorkoutMotivation #HealthGoals', canvas.width / 2, 500);
+
+    // Footer
+    ctx.font = '16px Arial';
+    ctx.fillText('Generated by FitTracker', canvas.width / 2, 550);
+
+    setIsGenerating(false);
+  };
+
+  const downloadImage = () => {
+    if (!canvasRef.current) return;
     
-    const handleDownload = async () => {
-        if (!imageRef.current) return;
-        setIsGenerating(true);
-        try {
-            const dataUrl = await toPng(imageRef.current, { cacheBust: true, quality: 0.95, backgroundColor: '#ffffff' });
-            const link = document.createElement('a');
-            link.download = `fittracker-progress-${new Date().toISOString().split('T')[0]}.png`;
-            link.href = dataUrl;
-            link.click();
-        } catch (error) {
-            console.error('Failed to generate image', error);
-        } finally {
-            setIsGenerating(false);
-        }
-    };
+    const link = document.createElement('a');
+    link.download = `fitness-progress-${currentDate.replace(/\//g, '-')}.png`;
+    link.href = canvasRef.current.toDataURL();
+    link.click();
+  };
 
-    return (
-        <div className="p-6 bg-gray-50 rounded-2xl border">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Share Your Progress</h2>
-            <p className="text-gray-600 mb-6">Download a shareable image of your latest stats to post on social media or send to friends!</p>
-            
-            <div ref={imageRef} className="p-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-2xl shadow-lg w-[400px]">
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-3xl font-black tracking-wider">FitTracker</h1>
-                    <Zap className="h-8 w-8 text-yellow-300" />
-                </div>
-                <div className="flex items-center space-x-4 mb-8">
-                    <img 
-                        src={user?.image || `https://ui-avatars.com/api/?name=${user?.displayName || user?.email}`} 
-                        alt="User" 
-                        className="w-16 h-16 rounded-full object-cover border-4 border-white/50"
-                    />
-                    <div>
-                        <h2 className="text-2xl font-bold">{user?.displayName || 'Fitness Enthusiast'}</h2>
-                        <p className="text-blue-200">Weekly Progress Report</p>
-                    </div>
-                </div>
+  const shareToSocial = (platform: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-                <div className="space-y-4">
-                    <div className="bg-white/20 backdrop-blur-md p-4 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <BarChart3 className="h-6 w-6 text-cyan-300"/>
-                            <span className="font-semibold">Total Workouts</span>
-                        </div>
-                        <span className="text-2xl font-bold">{totalWorkouts}</span>
-                    </div>
-                    <div className="bg-white/20 backdrop-blur-md p-4 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <Flame className="h-6 w-6 text-orange-300"/>
-                            <span className="font-semibold">Calories Burned</span>
-                        </div>
-                        <span className="text-2xl font-bold">{totalCaloriesBurned.toLocaleString()}</span>
-                    </div>
-                    <div className="bg-white/20 backdrop-blur-md p-4 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <TrendingUp className={`h-6 w-6 ${weightChange <= 0 ? 'text-green-300' : 'text-red-300'}`}/>
-                            <span className="font-semibold">Weight Change</span>
-                        </div>
-                        <span className={`text-2xl font-bold ${weightChange <= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                            {weightChange.toFixed(1)} kg
-                        </span>
-                    </div>
-                </div>
+    const dataURL = canvas.toDataURL();
+    const text = `Check out my fitness progress! 💪 #FitnessJourney #FitTracker`;
 
-                <div className="mt-6 text-center text-xs text-blue-200">
-                    <p>Generated on {new Date().toLocaleDateString()} | Keep up the great work!</p>
-                </div>
-            </div>
+    switch (platform) {
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+        break;
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin)}`, '_blank');
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct sharing, so we'll download the image
+        downloadImage();
+        alert('Image downloaded! You can now upload it to Instagram.');
+        break;
+      case 'linkedin':
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}`, '_blank');
+        break;
+    }
+  };
 
-            <button
-                onClick={handleDownload}
-                disabled={isGenerating}
-                className="w-full mt-6 flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-blue-400"
-            >
-                {isGenerating ? <Loader2 className="h-5 w-5 animate-spin"/> : <Download className="h-5 w-5"/>}
-                <span>{isGenerating ? 'Generating...' : 'Download Image'}</span>
-            </button>
+  React.useEffect(() => {
+    if (isOpen) {
+      generateImage();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            <Share2 className="h-6 w-6 mr-2 text-blue-600" />
+            Shareable Progress Image
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="h-6 w-6 text-gray-500" />
+          </button>
         </div>
-    );
-}
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Canvas Preview */}
+          <div className="flex justify-center mb-6">
+            <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
+              <canvas
+                ref={canvasRef}
+                className="max-w-full h-auto"
+                style={{ maxWidth: '400px', height: 'auto' }}
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-4">
+            {/* Download Button */}
+            <motion.button
+              onClick={downloadImage}
+              disabled={isGenerating}
+              className="w-full flex items-center justify-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold transition-all duration-200 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Download className="h-5 w-5" />
+              <span>{isGenerating ? 'Generating...' : 'Download Image'}</span>
+            </motion.button>
+
+            {/* Social Media Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { name: 'Twitter', icon: Twitter, color: 'bg-sky-500', platform: 'twitter' },
+                { name: 'Facebook', icon: Facebook, color: 'bg-blue-600', platform: 'facebook' },
+                { name: 'Instagram', icon: Instagram, color: 'bg-pink-600', platform: 'instagram' },
+                { name: 'LinkedIn', icon: Linkedin, color: 'bg-blue-700', platform: 'linkedin' }
+              ].map(({ name, icon: Icon, color, platform }) => (
+                <motion.button
+                  key={platform}
+                  onClick={() => shareToSocial(platform)}
+                  className={`flex items-center justify-center space-x-2 px-4 py-3 text-white rounded-lg font-medium transition-all duration-200 ${color} hover:opacity-90`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{name}</span>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="mt-6 bg-blue-50 rounded-xl p-4">
+            <h4 className="font-semibold text-blue-800 mb-2">💡 Sharing Tips:</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• Download the image and post it on your social media</li>
+              <li>• Use relevant hashtags to reach more people</li>
+              <li>• Share your progress regularly to stay motivated</li>
+              <li>• Tag friends who might be interested in fitness</li>
+            </ul>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default ShareableImage;

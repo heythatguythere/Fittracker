@@ -1,18 +1,12 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./tsconfig.node.json",
   "compilerOptions": {
-    "outDir": "dist-worker",
-    "lib": [
-      "ESNext"
-    ],
-    "module": "ESNext",
-    "target": "ESNext",
-    /* We need to specify the Cloudflare Worker types. */
-    "types": [
-      "@cloudflare/workers-types"
-    ]
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
+    "types": ["vite/client", "./worker-configuration.d.ts"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": [
-    "src/worker"
-  ]
+  "include": ["src/worker"]
 }
