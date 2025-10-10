@@ -21,6 +21,7 @@ export default defineConfig({
     }
   },
   build: {
+    outDir: 'dist',
     chunkSizeWarningLimit: 5000,
   },
   resolve: {
