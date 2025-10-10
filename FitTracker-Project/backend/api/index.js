@@ -39,15 +39,15 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
 
-// Session configuration for Vercel
+// Session configuration for Vercel - FIXED
 app.use(session({ 
-    secret: process.env.SESSION_SECRET, 
-    resave: false, 
-    saveUninitialized: false, 
+    secret: process.env.SESSION_SECRET || 'fallback-secret-key', 
+    resave: true, 
+    saveUninitialized: true, 
     cookie: { 
-        sameSite: 'lax', 
-        secure: process.env.NODE_ENV === 'production', 
-        httpOnly: true, 
+        sameSite: 'none', 
+        secure: true, 
+        httpOnly: false, 
         maxAge: 24 * 60 * 60 * 1000 
     } 
 }));
@@ -56,8 +56,21 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Authentication Middleware
-const isAuth = (req, res, next) => { if (req.user) next(); else res.status(401).send({ msg: 'Not Authenticated' }); };
-const isAdmin = (req, res, next) => { if (req.user && req.user.role === 'admin') next(); else res.status(403).send({ msg: 'Forbidden' }); };
+const isAuth = (req, res, next) => { 
+    if (req.user) {
+        next(); 
+    } else {
+        res.status(401).json({ msg: 'Not Authenticated', authenticated: false }); 
+    }
+};
+
+const isAdmin = (req, res, next) => { 
+    if (req.user && req.user.role === 'admin') {
+        next(); 
+    } else {
+        res.status(403).json({ msg: 'Forbidden' }); 
+    }
+};
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -144,12 +157,19 @@ app.get('/auth/logout', (req, res, next) => {
     }); 
 });
 
-// MISSING AUTH ENDPOINTS - Add these
-app.get('/api/auth/me', isAuth, (req, res) => {
-    res.json({ 
-        user: req.user,
-        authenticated: true 
-    });
+// FIXED AUTH ENDPOINTS - Better error handling
+app.get('/api/auth/me', (req, res) => {
+    if (req.user) {
+        res.json({ 
+            user: req.user,
+            authenticated: true 
+        });
+    } else {
+        res.status(401).json({ 
+            authenticated: false,
+            msg: 'No active session' 
+        });
+    }
 });
 
 app.get('/api/auth/status', (req, res) => {
