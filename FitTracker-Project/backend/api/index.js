@@ -1,4 +1,3 @@
-// Complete Vercel serverless function with all features
 const express = require('express');
 const mongoose = require('mongoose');
 const passport = require('passport');
@@ -30,7 +29,7 @@ mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connecte
 // CORS configuration for Vercel
 app.use(cors({ 
     origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.VERCEL_URL, 'https://your-app-name.vercel.app'] 
+        ? ['https://fittracker-gules.vercel.app', process.env.VERCEL_URL] 
         : 'http://localhost:5173', 
     credentials: true 
 }));
@@ -61,7 +60,13 @@ const isAdmin = (req, res, next) => { if (req.user && req.user.role === 'admin')
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Backend is running', timestamp: new Date().toISOString() });
+    res.json({ 
+        status: 'OK', 
+        message: 'Backend is running', 
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        vercelUrl: process.env.VERCEL_URL || 'https://fittracker-gules.vercel.app'
+    });
 });
 
 // Authentication routes
@@ -109,8 +114,17 @@ app.post('/auth/admin/login', (req, res, next) => {
     })(req, res, next); 
 });
 
+// Google OAuth routes with correct Vercel URL
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: (process.env.VERCEL_URL || 'https://your-app-name.vercel.app') + '/login' }), (req, res) => res.redirect((process.env.VERCEL_URL || 'https://your-app-name.vercel.app') + '/dashboard'));
+
+app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+        failureRedirect: 'https://fittracker-gules.vercel.app/login' 
+    }), 
+    (req, res) => {
+        res.redirect('https://fittracker-gules.vercel.app/dashboard');
+    }
+);
 
 app.get('/auth/logout', (req, res, next) => { 
     req.logout(function(err) { 
@@ -119,39 +133,189 @@ app.get('/auth/logout', (req, res, next) => {
     }); 
 });
 
-app.delete('/api/user', isAuth, async (req, res) => { try { await User.findByIdAndDelete(req.user._id); res.status(200).json({ msg: 'User deleted successfully' }); } catch (error) { res.status(500).json({ msg: 'Server error' }); } });
-app.get('/api/current_user', isAuth, (req, res) => { res.send(req.user); });
+// User management routes
+app.delete('/api/user', isAuth, async (req, res) => { 
+    try { 
+        await User.findByIdAndDelete(req.user._id); 
+        res.status(200).json({ msg: 'User deleted successfully' }); 
+    } catch (error) { 
+        res.status(500).json({ msg: 'Server error' }); 
+    } 
+});
+
+app.get('/api/current_user', isAuth, (req, res) => { 
+    res.send(req.user); 
+});
 
 // Workout routes
-app.get('/api/workouts', isAuth, async (req, res) => { try { const data = await Workout.find({ userId: req.user._id }).sort({ workout_date: -1 }); res.json(data); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
-app.post('/api/workouts', isAuth, async (req, res) => { try { const data = new Workout({ ...req.body, userId: req.user._id }); await data.save(); res.json(data); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
-app.put('/api/workouts/:id', isAuth, async (req, res) => { try { const d = await Workout.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { $set: req.body }, { new: true }); res.json(d); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
-app.delete('/api/workouts/:id', isAuth, async (req, res) => { try { await Workout.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); res.status(200).json({ msg: 'Deleted' }); } catch (err) { res.status(500).json({ msg: 'Server error' }); } });
+app.get('/api/workouts', isAuth, async (req, res) => { 
+    try { 
+        const data = await Workout.find({ userId: req.user._id }).sort({ workout_date: -1 }); 
+        res.json(data); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.post('/api/workouts', isAuth, async (req, res) => { 
+    try { 
+        const data = new Workout({ ...req.body, userId: req.user._id }); 
+        await data.save(); 
+        res.json(data); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.put('/api/workouts/:id', isAuth, async (req, res) => { 
+    try { 
+        const d = await Workout.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { $set: req.body }, { new: true }); 
+        res.json(d); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.delete('/api/workouts/:id', isAuth, async (req, res) => { 
+    try { 
+        await Workout.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); 
+        res.status(200).json({ msg: 'Deleted' }); 
+    } catch (err) { 
+        res.status(500).json({ msg: 'Server error' }); 
+    } 
+});
 
 // Measurement routes
-app.get('/api/measurements', isAuth, async (req, res) => { try { const data = await Measurement.find({ userId: req.user._id }).sort({ measurement_date: -1 }); res.json(data); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
-app.post('/api/measurements', isAuth, async (req, res) => { try { const data = new Measurement({ ...req.body, userId: req.user._id }); await data.save(); res.json(data); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
-app.put('/api/measurements/:id', isAuth, async (req, res) => { try { const d = await Measurement.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { $set: req.body }, { new: true }); res.json(d); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
-app.delete('/api/measurements/:id', isAuth, async (req, res) => { try { await Measurement.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); res.status(200).json({ msg: 'Deleted' }); } catch (e) { res.status(500).json({ msg: 'Error' }); } });
+app.get('/api/measurements', isAuth, async (req, res) => { 
+    try { 
+        const data = await Measurement.find({ userId: req.user._id }).sort({ measurement_date: -1 }); 
+        res.json(data); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.post('/api/measurements', isAuth, async (req, res) => { 
+    try { 
+        const data = new Measurement({ ...req.body, userId: req.user._id }); 
+        await data.save(); 
+        res.json(data); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.put('/api/measurements/:id', isAuth, async (req, res) => { 
+    try { 
+        const d = await Measurement.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { $set: req.body }, { new: true }); 
+        res.json(d); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.delete('/api/measurements/:id', isAuth, async (req, res) => { 
+    try { 
+        await Measurement.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); 
+        res.status(200).json({ msg: 'Deleted' }); 
+    } catch (e) { 
+        res.status(500).json({ msg: 'Error' }); 
+    } 
+});
 
 // Profile routes
-app.get('/api/profile', isAuth, async (req, res) => { try { let p = await Profile.findOne({ userId: req.user._id }); if (!p) { p = new Profile({ userId: req.user._id }); await p.save(); } res.json(p); } catch (e) { res.status(500).json({ msg: 'Error' }); } });
-app.post('/api/profile', isAuth, async (req, res) => { try { const p = await Profile.findOneAndUpdate({ userId: req.user._id }, { $set: req.body }, { new: true, upsert: true }); res.json(p); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
+app.get('/api/profile', isAuth, async (req, res) => { 
+    try { 
+        let p = await Profile.findOne({ userId: req.user._id }); 
+        if (!p) { 
+            p = new Profile({ userId: req.user._id }); 
+            await p.save(); 
+        } 
+        res.json(p); 
+    } catch (e) { 
+        res.status(500).json({ msg: 'Error' }); 
+    } 
+});
+
+app.post('/api/profile', isAuth, async (req, res) => { 
+    try { 
+        const p = await Profile.findOneAndUpdate({ userId: req.user._id }, { $set: req.body }, { new: true, upsert: true }); 
+        res.json(p); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
 
 // Goals routes
-app.get('/api/goals', isAuth, async (req, res) => { try { const g = await Goal.find({ userId: req.user._id }); res.json(g); } catch (e) { res.status(500).json({ msg: 'Error' }); } });
-app.post('/api/goals', isAuth, async (req, res) => { try { const g = new Goal({ ...req.body, userId: req.user._id }); await g.save(); res.status(201).json(g); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
+app.get('/api/goals', isAuth, async (req, res) => { 
+    try { 
+        const g = await Goal.find({ userId: req.user._id }); 
+        res.json(g); 
+    } catch (e) { 
+        res.status(500).json({ msg: 'Error' }); 
+    } 
+});
+
+app.post('/api/goals', isAuth, async (req, res) => { 
+    try { 
+        const g = new Goal({ ...req.body, userId: req.user._id }); 
+        await g.save(); 
+        res.status(201).json(g); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
 
 // Templates routes
-app.get('/api/templates', isAuth, async (req, res) => { try { const t = await WorkoutTemplate.find({ userId: req.user._id }); res.json(t); } catch (e) { res.status(500).json({ msg: 'Error' }); } });
-app.post('/api/templates', isAuth, async (req, res) => { try { const t = new WorkoutTemplate({ ...req.body, userId: req.user._id }); await t.save(); res.status(201).json(t); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
+app.get('/api/templates', isAuth, async (req, res) => { 
+    try { 
+        const t = await WorkoutTemplate.find({ userId: req.user._id }); 
+        res.json(t); 
+    } catch (e) { 
+        res.status(500).json({ msg: 'Error' }); 
+    } 
+});
+
+app.post('/api/templates', isAuth, async (req, res) => { 
+    try { 
+        const t = new WorkoutTemplate({ ...req.body, userId: req.user._id }); 
+        await t.save(); 
+        res.status(201).json(t); 
+    } catch (e) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
 
 // Diet routes
-app.get('/api/diet', isAuth, async (req, res) => { try { const entries = await DietEntry.find({ userId: req.user._id }).sort({ entry_date: -1 }); res.json(entries); } catch (err) { res.status(400).json({ msg: 'Error' }); } });
-app.post('/api/diet', isAuth, async (req, res) => { try { const newDietEntry = new DietEntry({ ...req.body, userId: req.user._id }); const savedEntry = await newDietEntry.save(); res.json(savedEntry); } catch (err) { res.status(400).json({ msg: 'Error' }); } });
-app.delete('/api/diet/:id', isAuth, async (req, res) => { try { await DietEntry.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); res.status(200).json({ msg: 'Deleted' }); } catch (err) { res.status(500).json({ msg: 'Error' }); } });
+app.get('/api/diet', isAuth, async (req, res) => { 
+    try { 
+        const entries = await DietEntry.find({ userId: req.user._id }).sort({ entry_date: -1 }); 
+        res.json(entries); 
+    } catch (err) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
 
-// AI-powered diet suggestions (simplified without marked)
+app.post('/api/diet', isAuth, async (req, res) => { 
+    try { 
+        const newDietEntry = new DietEntry({ ...req.body, userId: req.user._id }); 
+        const savedEntry = await newDietEntry.save(); 
+        res.json(savedEntry); 
+    } catch (err) { 
+        res.status(400).json({ msg: 'Error' }); 
+    } 
+});
+
+app.delete('/api/diet/:id', isAuth, async (req, res) => { 
+    try { 
+        await DietEntry.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); 
+        res.status(200).json({ msg: 'Deleted' }); 
+    } catch (err) { 
+        res.status(500).json({ msg: 'Error' }); 
+    } 
+});
+
+// AI-powered diet suggestions
 app.post('/api/diet/suggestions', isAuth, async (req, res) => {
     try {
         const { profile, dietEntries } = req.body;
@@ -250,7 +414,7 @@ app.post('/api/diet/suggestions', isAuth, async (req, res) => {
     }
 });
 
-// Calorie calculation (simplified)
+// Calorie calculation
 app.post('/api/diet/calculate-calories', isAuth, async (req, res) => {
     try {
         const { foodName, mealType, portionSize } = req.body;
@@ -338,7 +502,7 @@ app.get('/api/dashboard-summary', isAuth, async (req, res) => {
     }
 });
 
-// Generate report (simplified without marked)
+// Generate report
 app.post('/api/generate-report', isAuth, async (req, res) => {
     try {
         const { profile, workouts, measurements, dietEntries } = req.body;
