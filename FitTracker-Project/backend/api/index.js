@@ -144,6 +144,30 @@ app.get('/auth/logout', (req, res, next) => {
     }); 
 });
 
+// MISSING AUTH ENDPOINTS - Add these
+app.get('/api/auth/me', isAuth, (req, res) => {
+    res.json({ 
+        user: req.user,
+        authenticated: true 
+    });
+});
+
+app.get('/api/auth/status', (req, res) => {
+    res.json({ 
+        authenticated: !!req.user,
+        user: req.user || null 
+    });
+});
+
+// Session check endpoint
+app.get('/api/session', (req, res) => {
+    res.json({ 
+        session: req.session,
+        user: req.user,
+        authenticated: !!req.user 
+    });
+});
+
 // User management routes
 app.delete('/api/user', isAuth, async (req, res) => { 
     try { 
