@@ -5,7 +5,7 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "dist/client"
       }
     },
     {
@@ -24,7 +24,13 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/index.html"
+      "dest": "/frontend/dist/client/$1"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api|auth).*)",
+      "destination": "/frontend/dist/client/index.html"
     }
   ]
 }
