@@ -1,3 +1,4 @@
+// Complete Vercel serverless function with all features
 const express = require('express');
 const mongoose = require('mongoose');
 const passport = require('passport');
@@ -118,6 +119,16 @@ app.post('/auth/admin/login', (req, res, next) => {
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+        failureRedirect: 'https://fittracker-gules.vercel.app/login' 
+    }), 
+    (req, res) => {
+        res.redirect('https://fittracker-gules.vercel.app/dashboard');
+    }
+);
+
+// Also add the /api prefix version for Vercel routing
+app.get('/api/auth/google/callback', 
     passport.authenticate('google', { 
         failureRedirect: 'https://fittracker-gules.vercel.app/login' 
     }), 
