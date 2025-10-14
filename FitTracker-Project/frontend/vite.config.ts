@@ -1,10 +1,9 @@
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
-  plugins: [react(), cloudflare()],
+  plugins: [react()],
   publicDir: 'public',
   server: {
     // THIS IS THE NEW PROXY CONFIGURATION
@@ -24,6 +23,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     chunkSizeWarningLimit: 5000,
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    }
   },
   base: '/',
   resolve: {
