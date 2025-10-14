@@ -5,7 +5,6 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
-<<<<<<< Current (Your changes)
   server: {
     proxy: {
       '/api': {
@@ -19,7 +18,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',
+    outDir: 'dist/client',
     chunkSizeWarningLimit: 5000,
     rollupOptions: {
       output: {
@@ -30,14 +29,6 @@ export default defineConfig({
     }
   },
   base: '/',
-=======
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    emptyOutDir: true
-  },
-  base: './',
->>>>>>> Incoming (Background Agent changes)
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
