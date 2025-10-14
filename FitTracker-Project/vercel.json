@@ -5,13 +5,23 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "installCommand": "cd frontend && npm install",
-        "buildCommand": "cd frontend && npm run build"
+        "distDir": "dist"
       }
+    },
+    {
+      "src": "backend/api/index.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/api/index.js"
+    },
+    {
+      "src": "/auth/(.*)",
+      "dest": "/backend/api/index.js"
+    },
     {
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
