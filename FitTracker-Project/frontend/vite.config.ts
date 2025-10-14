@@ -24,6 +24,7 @@ export default defineConfig({
     outDir: 'dist',
     chunkSizeWarningLimit: 5000,
   },
+  base: '/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
