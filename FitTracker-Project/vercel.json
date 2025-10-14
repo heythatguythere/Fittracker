@@ -2,8 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/dist/**",
-      "use": "@vercel/static"
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/client"
+      }
     },
     {
       "src": "backend/api/index.js",
@@ -21,15 +24,15 @@
     },
     {
       "src": "/assets/(.*)",
-      "dest": "/frontend/dist/assets/$1"
+      "dest": "/assets/$1"
     },
     {
       "src": "/favicon.ico",
-      "dest": "/frontend/dist/favicon.ico"
+      "dest": "/favicon.ico"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/index.html"
+      "dest": "/index.html"
     }
   ]
 }

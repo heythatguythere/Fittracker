@@ -42,6 +42,7 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "vercel-build": "npm run build"
   }
 }
