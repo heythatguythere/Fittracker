@@ -26,5 +26,10 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "backend/api/index.js": {
+      "maxDuration": 30
+    }
+  }
 }
