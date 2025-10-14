@@ -23,6 +23,10 @@
       "dest": "/backend/api/index.js"
     },
     {
+      "src": "/favicon.ico",
+      "dest": "/frontend/dist/client/favicon.ico"
+    },
+    {
       "src": "/assets/(.*)",
       "dest": "/frontend/dist/client/assets/$1"
     },

@@ -5,6 +5,7 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
   plugins: [react(), cloudflare()],
+  publicDir: 'public',
   server: {
     // THIS IS THE NEW PROXY CONFIGURATION
     proxy: {
