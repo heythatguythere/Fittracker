@@ -5,11 +5,23 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist/client"
+        "distDir": "dist"
       }
+    },
+    {
+      "src": "backend/api/index.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/api/index.js"
+    },
+    {
+      "src": "/auth/(.*)",
+      "dest": "/backend/api/index.js"
+    },
     {
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
@@ -21,12 +33,6 @@
     {
       "src": "/(.*)",
       "dest": "/index.html"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/((?!api|auth|assets|favicon.ico).*)",
-      "destination": "/index.html"
     }
   ]
 }

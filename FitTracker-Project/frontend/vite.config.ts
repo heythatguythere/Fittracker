@@ -18,15 +18,9 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist/client',
-    chunkSizeWarningLimit: 5000,
-    rollupOptions: {
-      output: {
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      }
-    }
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true
   },
   base: '/',
   resolve: {
