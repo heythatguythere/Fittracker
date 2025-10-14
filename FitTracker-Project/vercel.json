@@ -5,32 +5,26 @@
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist/client"
+        "distDir": "dist"
       }
     },
     {
-      "src": "api/index.js",
+      "src": "backend/api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/index.js"
+      "dest": "/backend/api/index.js"
     },
     {
       "src": "/auth/(.*)",
-      "dest": "/api/index.js"
+      "dest": "/backend/api/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/client/$1"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/((?!api|auth).*)",
-      "destination": "/frontend/dist/client/index.html"
+      "dest": "/frontend/dist/index.html"
     }
   ]
 }
