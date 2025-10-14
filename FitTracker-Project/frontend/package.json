@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.25.1",
-    "@types/node": "22.14.1",
+    "@types/node": "^22.14.1",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
     "@vitejs/plugin-react": "^5.0.4",
@@ -41,7 +41,7 @@
   },
   "scripts": {
     "build": "tsc -b && vite build",
-    "dev": "vite",
+    "dev": "npx vite",
     "lint": "eslint .",
     "vercel-build": "npm run build"
   }
