@@ -32,7 +32,11 @@
     },
     {
       "src": "/(.*)",
+<<<<<<< Current (Your changes)
       "dest": "/frontend/dist/client/index.html"
+=======
+      "dest": "/index.html"
+>>>>>>> Incoming (Background Agent changes)
     }
   ]
 }
