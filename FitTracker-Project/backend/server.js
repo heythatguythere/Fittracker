@@ -25,12 +25,32 @@ const app = express();
 require('./config/passport-setup'); 
 
 mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connected...')).catch(err => console.log(err));
-app.use(cors({ 
-    origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.FRONTEND_URL, 'https://your-frontend-domain.vercel.app'] 
-        : 'http://localhost:5173', 
-    credentials: true 
-}));
+
+// CORS configuration - allow all Vercel preview URLs
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        
+        // Allowed origins
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'http://localhost:5000',
+            'https://fittracker-gules.vercel.app',
+            process.env.FRONTEND_URL
+        ];
+        
+        // Allow all Vercel preview URLs (pattern: *.vercel.app)
+        if (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1); 
