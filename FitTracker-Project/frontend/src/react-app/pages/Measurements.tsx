@@ -46,7 +46,8 @@ export default function Measurements() {
                 axios.get("/api/profile", { withCredentials: true })
             ]);
             // Sort by date for charting
-            const sortedMeasurements = measurementsRes.data.sort((a: Measurement, b: Measurement) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime());
+            const measurementsData = Array.isArray(measurementsRes.data) ? measurementsRes.data : [];
+            const sortedMeasurements = measurementsData.sort((a: Measurement, b: Measurement) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime());
             setMeasurements(sortedMeasurements);
             setProfile(profileRes.data);
         } catch (error) {
