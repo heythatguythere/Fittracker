@@ -677,14 +677,14 @@ function SummaryView({ workout, onClose, dailyGoal }: SummaryViewProps) {
         return sum + (sets * reps * weight);
     }, 0) || 0;
     const totalSets = workout.exercises?.reduce((sum: number, ex) => sum + (ex.sets || 0), 0) || 0;
-    const completedSets = workout.exercises?.reduce((sum: number, ex) => sum + (ex.completed?.filter((c: boolean) => c).length || 0), 0) || 0;
+    const completedSets = (Array.isArray(workout.exercises) ? workout.exercises : []).reduce((sum: number, ex) => sum + (ex.completed?.filter((c: boolean) => c).length || 0), 0);
     
     const chartData = [
         { name: 'Calories Burned', value: workout.calories_burned || 0, fill: '#3B82F6' },
         { name: 'Remaining Goal', value: Math.max(0, dailyGoal - (workout.calories_burned || 0)), fill: '#E5E7EB' }
     ];
     
-    const exerciseData = workout.exercises?.map((ex) => {
+    const exerciseData = (Array.isArray(workout.exercises) ? workout.exercises : []).map((ex) => {
         const sets = ex.sets || 0;
         const reps = ex.reps || 0;
         const weight = ex.weight || 0;

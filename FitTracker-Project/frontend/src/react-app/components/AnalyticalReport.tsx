@@ -385,7 +385,7 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
             Goal Progress
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {goals.map((goal) => {
+            {(Array.isArray(goals) ? goals : []).map((goal) => {
               const measurementArray = Array.isArray(measurements) ? measurements : [];
               const progress = goal.goal_type === 'weight' && measurementArray.length > 0
                 ? Math.min(100, Math.max(0, ((measurementArray[measurementArray.length - 1].weight_kg || 0) - goal.start_value!) / (goal.target_value - goal.start_value!) * 100))
