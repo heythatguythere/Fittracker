@@ -8,6 +8,8 @@ interface WorkoutAnalyticsProps {
 
 export default function WorkoutAnalytics({ workouts }: WorkoutAnalyticsProps) {
   // Weekly workout frequency data
+  const workoutArray = Array.isArray(workouts) ? workouts : [];
+  
   const weeks = eachWeekOfInterval({
     start: subWeeks(new Date(), 12), // Last 12 weeks
     end: new Date()
@@ -17,7 +19,7 @@ export default function WorkoutAnalytics({ workouts }: WorkoutAnalyticsProps) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
     
-    const weekWorkouts = workouts.filter(workout => {
+    const weekWorkouts = workoutArray.filter(workout => {
       const workoutDate = parseISO(workout.workout_date);
       return workoutDate >= weekStart && workoutDate <= weekEnd;
     });
@@ -31,11 +33,11 @@ export default function WorkoutAnalytics({ workouts }: WorkoutAnalyticsProps) {
   });
 
   // Monthly statistics
-  const totalWorkouts = workouts.length;
-  const avgDuration = workouts.length > 0 
-    ? workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0) / workouts.length 
+  const totalWorkouts = workoutArray.length;
+  const avgDuration = workoutArray.length > 0 
+    ? workoutArray.reduce((sum, w) => sum + (w.duration_minutes || 0), 0) / workoutArray.length 
     : 0;
-  const totalCalories = workouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
+  const totalCalories = workoutArray.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
 
   // Recent 4 weeks for comparison
   const recentWeeks = weeklyData.slice(-4);

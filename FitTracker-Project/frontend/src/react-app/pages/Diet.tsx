@@ -166,7 +166,7 @@ export default function Diet() {
     const dailyCalorieGoal = (profile as UserProfile)?.calorie_goal || 2000;
     const remainingCalories = Math.max(0, dailyCalorieGoal - totalCaloriesToday);
 
-    const entriesByDate = dietEntries.reduce((acc, entry) => {
+    const entriesByDate = dietArray.reduce((acc, entry) => {
         const date = new Date(entry.entry_date).toISOString().split('T')[0];
         if (!acc[date]) acc[date] = [];
         acc[date].push(entry);
@@ -204,7 +204,7 @@ export default function Diet() {
                         <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-gray-900">Meal Suggestions</h3><button onClick={getSuggestions} disabled={suggestionsLoading} className="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2"><Lightbulb className="h-5 w-5" /><span>{suggestionsLoading ? "Thinking..." : "Get Ideas"}</span></button></div>
                         {suggestionsLoading && <div className="flex justify-center items-center h-24"><Loader2 className="h-6 w-6 animate-spin text-gray-500" /></div>}
                         {suggestionError && <div className="text-red-500 text-sm">{suggestionError}</div>}
-                        {suggestions.length > 0 && <div className="space-y-3">{suggestions.map((s, i) => (<div key={i} className="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg"><Apple className="h-5 w-5 text-green-600 shrink-0 mt-1" /><div><p className="font-semibold">{s.meal_name}</p><p className="text-sm text-gray-600">{s.description}</p><div className="flex flex-wrap items-center mt-2 space-x-3 text-xs"><span className="font-medium text-gray-700">{s.calories} kcal</span><span className="text-gray-400">•</span><span className="font-medium text-red-600">{s.protein_g}g P</span><span className="font-medium text-orange-600">{s.carbs_g}g C</span><span className="font-medium text-purple-600">{s.fat_g}g F</span></div></div></div>))}</div>}
+                        {Array.isArray(suggestions) && suggestions.length > 0 && <div className="space-y-3">{suggestions.map((s, i) => (<div key={i} className="flex items-start space-x-3 bg-gray-50 p-3 rounded-lg"><Apple className="h-5 w-5 text-green-600 shrink-0 mt-1" /><div><p className="font-semibold">{s.meal_name}</p><p className="text-sm text-gray-600">{s.description}</p><div className="flex flex-wrap items-center mt-2 space-x-3 text-xs"><span className="font-medium text-gray-700">{s.calories} kcal</span><span className="text-gray-400">•</span><span className="font-medium text-red-600">{s.protein_g}g P</span><span className="font-medium text-orange-600">{s.carbs_g}g C</span><span className="font-medium text-purple-600">{s.fat_g}g F</span></div></div></div>))}</div>}
                     </div>
                 </div>
 
