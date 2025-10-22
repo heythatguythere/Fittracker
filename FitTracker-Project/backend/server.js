@@ -42,12 +42,36 @@ app.use(passport.session());
 const isAuth = (req, res, next) => { if (req.user) next(); else res.status(401).send({ msg: 'Not Authenticated' }); };
 const isAdmin = (req, res, next) => { if (req.user && req.user.role === 'admin') next(); else res.status(403).send({ msg: 'Forbidden' }); };
 
+// --- Health Check / Root Route ---
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'FitTracker API is running! 🚀', 
+        status: 'healthy',
+        version: '1.0.0',
+        endpoints: {
+            auth: '/auth/*',
+            api: '/api/*',
+            health: '/health'
+        }
+    });
+});
+
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
+});
+
 // --- [All existing Authentication and standard API routes remain here, unchanged] ---
 app.post('/auth/register', async (req, res) => { try { const { email, password } = req.body; const existingUser = await User.findOne({ email }); if (existingUser) { return res.status(400).json({ msg: 'User already exists' }); } const hashedPassword = await bcrypt.hash(password, 10); const newUser = new User({ email, password: hashedPassword }); await newUser.save(); req.logIn(newUser, (err) => { if (err) { return res.status(500).json({ msg: 'Server error during login after registration.' }); } res.status(201).json({ msg: 'User created successfully', newUser: true, user: req.user }); }); } catch (error) { res.status(500).json({ msg: 'Server error' }); } });
 app.post('/auth/login', (req, res, next) => { passport.authenticate('local', (err, user, info) => { if (err) { return next(err); } if (!user) { return res.status(401).json({ msg: info.message || 'Invalid credentials.' }); } req.logIn(user, (err) => { if (err) { return next(err); } return res.json({ msg: 'Logged in successfully!', user: req.user }); }); })(req, res, next); });
 app.post('/auth/admin/login', (req, res, next) => { passport.authenticate('local', (err, user, info) => { if (err) { return next(err); } if (!user) { return res.status(401).json({ msg: info.message || 'Invalid credentials.' }); } if (user.role !== 'admin') { return res.status(403).json({ msg: 'Forbidden.' }); } req.logIn(user, (err) => { if (err) { return next(err); } return res.json({ msg: 'Admin logged in successfully!', user: req.user }); }); })(req, res, next); });
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }), (req, res) => res.redirect('http://localhost:5173/dashboard'));
+app.get('/auth/google/callback', passport.authenticate('google', { 
+    failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
+}), (req, res) => res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard'));
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
 app.delete('/api/user', isAuth, async (req, res) => { try { await User.findByIdAndDelete(req.user._id); res.status(200).json({ msg: 'User deleted successfully' }); } catch (error) { res.status(500).json({ msg: 'Server error' }); } });
 app.get('/api/current_user', isAuth, (req, res) => { res.send(req.user); });
