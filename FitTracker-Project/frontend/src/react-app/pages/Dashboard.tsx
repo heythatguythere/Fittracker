@@ -82,11 +82,11 @@ export default function Dashboard() {
                     ]);
                     setSummary(res[0].data);
                     setProfile(res[1].data);
-                    setRecentWorkouts(res[2].data);
-                    setRecentMeasurements(res[3].data);
-                    setRecentDietEntries(res[4].data);
-                    setGoals(res[5].data);
-                    setTemplates(res[6].data);
+                    setRecentWorkouts(Array.isArray(res[2].data) ? res[2].data : []);
+                    setRecentMeasurements(Array.isArray(res[3].data) ? res[3].data : []);
+                    setRecentDietEntries(Array.isArray(res[4].data) ? res[4].data : []);
+                    setGoals(Array.isArray(res[5].data) ? res[5].data : []);
+                    setTemplates(Array.isArray(res[6].data) ? res[6].data : []);
                 } catch (error) { 
                     console.error("Failed to fetch dashboard data:", error);
                     setError("Failed to load dashboard data. Please try refreshing the page.");
@@ -173,7 +173,7 @@ export default function Dashboard() {
                             <button onClick={() => navigate('/workouts')} className="p-6 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors text-center"><PlusCircle className="h-10 w-10 text-blue-600 mx-auto mb-2" /><span className="font-semibold text-blue-800">Start Blank Workout</span></button>
                             <button onClick={() => navigate('/workouts/templates')} className="p-6 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors text-center"><ClipboardList className="h-10 w-10 text-purple-600 mx-auto mb-2" /><span className="font-semibold text-purple-800">Manage Templates</span></button>
                        </div>
-                       {templates && templates.length > 0 && (
+                       {Array.isArray(templates) && templates.length > 0 && (
                            <div className="mt-6"><h3 className="font-semibold text-gray-700 mb-3">Quick Start:</h3><div className="flex flex-wrap gap-2">{templates.slice(0, 3).map(t => (<button key={t._id} onClick={() => navigate(`/workouts?template=${t._id}`)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full font-medium">{t.name}</button>))}</div></div>
                        )}
                     </motion.div>

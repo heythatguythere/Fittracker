@@ -26,9 +26,10 @@ export default function WorkoutTemplates() {
         setLoading(true);
         try {
             const response = await axios.get("/api/templates", { withCredentials: true });
-            setTemplates(response.data);
+            setTemplates(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error("Failed to fetch templates:", error);
+            setTemplates([]);
         } finally {
             setLoading(false);
         }
@@ -133,7 +134,7 @@ export default function WorkoutTemplates() {
                                         <button onClick={() => deleteTemplate(template._id)} className="text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                                     </div>
                                 </div>
-                                {template.exercises && template.exercises.length > 0 && (
+                                {Array.isArray(template.exercises) && template.exercises.length > 0 && (
                                     <div className="mt-4 border-t pt-4">
                                         <h4 className="text-sm font-medium text-gray-700 mb-2">Exercises:</h4>
                                         <ul className="space-y-1 text-xs text-gray-600">
