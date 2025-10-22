@@ -205,7 +205,8 @@ export default function Workouts() {
     const calculateCaloriesBurned = (exercises: Exercise[], durationMinutes: number, weightKg: number) => {
         let totalCalories = 0;
         
-        exercises.forEach(exercise => {
+        const exerciseArray = Array.isArray(exercises) ? exercises : [];
+        exerciseArray.forEach(exercise => {
             const metValue = exercise.met || MET_VALUES[selectedWorkoutType || 'default'] || MET_VALUES.default;
             let exerciseDuration = durationMinutes;
             
@@ -322,7 +323,8 @@ interface SelectionViewProps {
 function SelectionView({ workouts, templates, navigate, onSelectWorkout, onSelectWorkoutType, onLogManual }: SelectionViewProps) {
     const processWorkoutDataForChart = () => {
         const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return { date: d.toISOString().split('T')[0], name: d.toLocaleDateString('en-US', { weekday: 'short' }), workouts: 0 }; }).reverse();
-        workouts.forEach((w: Workout) => { const d = new Date(w.workout_date).toISOString().split('T')[0]; const day = last7Days.find(day => day.date === d); if (day) day.workouts++; });
+        const workoutArray = Array.isArray(workouts) ? workouts : [];
+        workoutArray.forEach((w: Workout) => { const d = new Date(w.workout_date).toISOString().split('T')[0]; const day = last7Days.find(day => day.date === d); if (day) day.workouts++; });
         return last7Days;
     };
     return (

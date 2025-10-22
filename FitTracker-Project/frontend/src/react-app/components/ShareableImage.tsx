@@ -32,13 +32,16 @@ const ShareableImage: React.FC<ShareableImageProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Calculate key metrics
-  const totalWorkouts = workouts.length;
-  const totalCaloriesBurned = workouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
-  const latestWeight = measurements.length > 0 ? measurements[0].weight_kg : null;
-  const initialWeight = measurements.length > 0 ? measurements[measurements.length - 1].weight_kg : null;
+  const workoutArray = Array.isArray(workouts) ? workouts : [];
+  const measurementArray = Array.isArray(measurements) ? measurements : [];
+  
+  const totalWorkouts = workoutArray.length;
+  const totalCaloriesBurned = workoutArray.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
+  const latestWeight = measurementArray.length > 0 ? measurementArray[0].weight_kg : null;
+  const initialWeight = measurementArray.length > 0 ? measurementArray[measurementArray.length - 1].weight_kg : null;
   const weightChange = latestWeight && initialWeight ? (latestWeight - initialWeight).toFixed(1) : null;
   
-  const weeklyWorkouts = workouts.filter(w => {
+  const weeklyWorkouts = workoutArray.filter(w => {
     const workoutDate = new Date(w.workout_date);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);

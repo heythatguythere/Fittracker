@@ -41,7 +41,7 @@ export default function Diet() {
                 axios.get("/api/diet", { withCredentials: true }),
                 axios.get("/api/profile", { withCredentials: true })
             ]);
-            setDietEntries(dietRes.data);
+            setDietEntries(Array.isArray(dietRes.data) ? dietRes.data : []);
             setProfile(profileRes.data);
         } catch (error) {
             console.error("Failed to fetch initial data:", error);
@@ -157,7 +157,8 @@ export default function Diet() {
     };
 
     const today = new Date().toISOString().split('T')[0];
-    const todaysEntries = dietEntries.filter(entry => new Date(entry.entry_date).toISOString().split('T')[0] === today);
+    const dietArray = Array.isArray(dietEntries) ? dietEntries : [];
+    const todaysEntries = dietArray.filter(entry => new Date(entry.entry_date).toISOString().split('T')[0] === today);
     const totalCaloriesToday = todaysEntries.reduce((sum, entry) => sum + (entry.calories || 0), 0);
     const totalProteinToday = todaysEntries.reduce((sum, entry) => sum + (entry.protein_g || 0), 0);
     const totalCarbsToday = todaysEntries.reduce((sum, entry) => sum + (entry.carbs_g || 0), 0);

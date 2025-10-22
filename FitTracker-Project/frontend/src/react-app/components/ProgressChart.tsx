@@ -28,7 +28,8 @@ export default function ProgressChart({
   formatValue,
   goalLine
 }: ProgressChartProps) {
-  const chartData = data
+  const dataArray = Array.isArray(data) ? data : [];
+  const chartData = dataArray
     .filter(item => item[dataKey] !== null && item[dataKey] !== undefined)
     .map(item => ({
       ...item,
