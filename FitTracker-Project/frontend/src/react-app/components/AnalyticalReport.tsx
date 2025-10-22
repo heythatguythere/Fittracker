@@ -54,7 +54,8 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
     
-    const workoutData = workouts
+    const workoutArray = Array.isArray(workouts) ? workouts : [];
+    const workoutData = workoutArray
       .filter(w => new Date(w.workout_date) >= last30Days)
       .map(w => ({
         date: new Date(w.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -68,7 +69,8 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
   };
 
   const processWeightData = () => {
-    return measurements
+    const measurementArray = Array.isArray(measurements) ? measurements : [];
+    return measurementArray
       .filter(m => m.weight_kg !== null)
       .map(m => {
         // Calculate BMI if we have height data (assuming average height for now)
@@ -89,7 +91,8 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
     const last7Days = new Date();
     last7Days.setDate(last7Days.getDate() - 7);
     
-    const calorieData = dietEntries
+    const dietArray = Array.isArray(dietEntries) ? dietEntries : [];
+    const calorieData = dietArray
       .filter(d => new Date(d.entry_date) >= last7Days)
       .reduce((acc, entry) => {
         const date = new Date(entry.entry_date).toLocaleDateString('en-US', { weekday: 'short' });
@@ -108,8 +111,10 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
   const processExerciseDistribution = () => {
     const exerciseCounts: { [key: string]: number } = {};
     
-    workouts.forEach(workout => {
-      workout.exercises?.forEach(exercise => {
+    const workoutArray = Array.isArray(workouts) ? workouts : [];
+    workoutArray.forEach(workout => {
+      const exerciseArray = Array.isArray(workout.exercises) ? workout.exercises : [];
+      exerciseArray.forEach(exercise => {
         const name = exercise.exercise_name ||'Unknown';
         exerciseCounts[name] = (exerciseCounts[name] || 0) + 1;
       });
@@ -122,17 +127,20 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
   };
 
   const calculateInsights = () => {
-    const totalWorkouts = workouts.length;
-    const totalCaloriesBurned = workouts.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
-    const avgWorkoutDuration = workouts.length > 0 
-      ? workouts.reduce((sum, w) => sum + (w.duration_minutes || 0), 0) / workouts.length 
+    const workoutArray = Array.isArray(workouts) ? workouts : [];
+    const measurementArray = Array.isArray(measurements) ? measurements : [];
+    
+    const totalWorkouts = workoutArray.length;
+    const totalCaloriesBurned = workoutArray.reduce((sum, w) => sum + (w.calories_burned || 0), 0);
+    const avgWorkoutDuration = workoutArray.length > 0 
+      ? workoutArray.reduce((sum, w) => sum + (w.duration_minutes || 0), 0) / workoutArray.length 
       : 0;
     
-    const weightChange = measurements.length >= 2 
-      ? (measurements[0].weight_kg || 0) - (measurements[measurements.length - 1].weight_kg || 0)
+    const weightChange = measurementArray.length >= 2 
+      ? (measurementArray[0].weight_kg || 0) - (measurementArray[measurementArray.length - 1].weight_kg || 0)
       : 0;
 
-    const weeklyWorkoutFrequency = workouts.filter(w => {
+    const weeklyWorkoutFrequency = workoutArray.filter(w => {
       const workoutDate = new Date(w.workout_date);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
@@ -365,7 +373,7 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
       </div>
 
       {/* Goals Progress */}
-      {goals.length > 0 && (
+      {Array.isArray(goals) && goals.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -378,8 +386,9 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {goals.map((goal) => {
-              const progress = goal.goal_type === 'weight' && measurements.length > 0
-                ? Math.min(100, Math.max(0, ((measurements[measurements.length - 1].weight_kg || 0) - goal.start_value!) / (goal.target_value - goal.start_value!) * 100))
+              const measurementArray = Array.isArray(measurements) ? measurements : [];
+              const progress = goal.goal_type === 'weight' && measurementArray.length > 0
+                ? Math.min(100, Math.max(0, ((measurementArray[measurementArray.length - 1].weight_kg || 0) - goal.start_value!) / (goal.target_value - goal.start_value!) * 100))
                 : goal.goal_type === 'workout_frequency'
                 ? Math.min(100, (insights.weeklyWorkoutFrequency / goal.target_value) * 100)
                 : 0;
@@ -446,7 +455,7 @@ const AnalyticalReport: React.FC<AnalyticalReportProps> = ({
               {insights.avgWorkoutDuration < 30 && (
                 <li>• Aim for longer workout sessions (30+ minutes)</li>
               )}
-              {measurements.length < 2 && (
+              {(!Array.isArray(measurements) || measurements.length < 2) && (
                 <li>• Track measurements more regularly</li>
               )}
             </ul>
