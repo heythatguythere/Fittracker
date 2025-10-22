@@ -122,7 +122,7 @@ export default function WorkoutTemplates() {
 
                 {!loading && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {templates.map(template => (
+                        {(Array.isArray(templates) ? templates : []).map(template => (
                             <div key={template._id} className="bg-white rounded-xl shadow-sm border p-6">
                                 <div className="flex justify-between items-start">
                                     <div>

@@ -137,7 +137,7 @@ export default function Measurements() {
                     {measurements.length > 1 ? (
                         <div className="h-96 w-full">
                             <ResponsiveContainer>
-                                <LineChart data={measurements.map(m => ({...m, date: new Date(m.measurement_date).toLocaleDateString()}))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <LineChart data={(Array.isArray(measurements) ? measurements : []).map(m => ({...m, date: new Date(m.measurement_date).toLocaleDateString()}))} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="date" />
                                     <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
@@ -158,7 +158,7 @@ export default function Measurements() {
                         <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-2xl border"><Scale className="h-16 w-16 text-gray-400 mx-auto mb-4" /><h3 className="text-xl font-semibold">No measurements recorded</h3><p className="text-gray-600 mb-6">Start tracking by recording your first measurement.</p><button onClick={() => setShowModal('create')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">Record First Measurement</button></div>
                     ) : (
                         <div className="space-y-4">
-                            {measurements.slice().reverse().map((m) => ( // reverse a copy to show most recent first
+                            {(Array.isArray(measurements) ? measurements : []).slice().reverse().map((m) => ( // reverse a copy to show most recent first
                                 <motion.div key={m._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white/80 backdrop-blur-xl rounded-xl shadow-sm border p-4">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center space-x-2"><Calendar className="h-5 w-5 text-gray-400" /><span className="text-lg font-medium">{new Date(m.measurement_date).toLocaleDateString()}</span></div>
