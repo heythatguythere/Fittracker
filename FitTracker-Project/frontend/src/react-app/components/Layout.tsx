@@ -31,7 +31,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 axios.get('/api/workouts', { withCredentials: true })
             ]);
             setUserProfile(profileRes.data);
-            setRecentWorkouts(workoutsRes.data.slice(0, 10)); // Last 10 workouts
+            const workoutsData = Array.isArray(workoutsRes.data) ? workoutsRes.data : [];
+            setRecentWorkouts(workoutsData.slice(0, 10)); // Last 10 workouts
         } catch (error) {
             console.error('Failed to fetch user data for AI coach:', error);
         }
