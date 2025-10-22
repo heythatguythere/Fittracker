@@ -70,7 +70,7 @@ export default function Friends() {
     const viewFriendProgress = async (friendId: string) => { try { const response = await axios.get(`/api/friends/${friendId}/progress`, { withCredentials: true }); setSelectedFriend(response.data); } catch { setActionError('Failed to load friend progress'); } };
     const getRankIcon = (index: number) => { if (index === 0) return <Crown className="h-6 w-6 text-yellow-500" />; if (index === 1) return <Medal className="h-6 w-6 text-gray-400" />; if (index === 2) return <Award className="h-6 w-6 text-amber-600" />; return <span className="text-lg font-bold text-gray-600">#{index + 1}</span>; };
     
-    const friendsList = leaderboard.filter(u => !u.isCurrentUser);
+    const friendsList = (Array.isArray(leaderboard) ? leaderboard : []).filter(u => !u.isCurrentUser);
 
     if (loading) { return <Layout><div className="flex items-center justify-center h-full"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div></Layout>; }
 
