@@ -1,3 +1,4 @@
+
 // react-app/pages/diet.tsx - Updated types
 import { useEffect, useState, FormEvent } from "react";
 import { useAuth } from "../AuthContext";
