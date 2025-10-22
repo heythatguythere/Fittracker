@@ -120,7 +120,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="bg-white p-6 rounded-xl shadow-sm border">
                                     <h2 className="text-2xl font-semibold mb-4">Recent Registrations</h2>
-                                    <ul className="space-y-4">{users.slice(0, 5).map(u => <li key={u._id} className="flex items-center space-x-3"><img src={u.image || `https://ui-avatars.com/api/?name=${u.displayName || u.email}&background=E2E8F0&color=1A202C`} alt="avatar" className="h-10 w-10 rounded-full" /><div><p className="font-semibold">{u.displayName}</p><p className="text-sm text-gray-500">{u.email}</p></div></li>)}</ul>
+                                    <ul className="space-y-4">{(users || []).slice(0, 5).map(u => <li key={u._id} className="flex items-center space-x-3"><img src={u.image || `https://ui-avatars.com/api/?name=${u.displayName || u.email}&background=E2E8F0&color=1A202C`} alt="avatar" className="h-10 w-10 rounded-full" /><div><p className="font-semibold">{u.displayName}</p><p className="text-sm text-gray-500">{u.email}</p></div></li>)}</ul>
                                 </div>
                             </div>
                         </div>
