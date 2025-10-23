@@ -109,7 +109,16 @@ app.post('/auth/admin/login', (req, res, next) => { passport.authenticate('local
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/auth/google/callback', passport.authenticate('google', { 
     failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
-}), (req, res) => res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard'));
+}), (req, res) => {
+    // Save session before redirecting to ensure cookie is set
+    req.session.save((err) => {
+        if (err) {
+            console.error('Session save error:', err);
+            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login');
+        }
+        res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard');
+    });
+});
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
 
 // Auth check endpoints
