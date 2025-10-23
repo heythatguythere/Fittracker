@@ -1,0 +1,10 @@
+{
+  "installCommand": "cd FitTracker-Project/frontend && npm ci",
+  "buildCommand": "cd FitTracker-Project/frontend && npm run build",
+  "outputDirectory": "FitTracker-Project/frontend/dist",
+  "rewrites": [
+    { "source": "/api/:match*", "destination": "/api/:match*" },
+    { "source": "/auth/:match*", "destination": "/api/:match*" },
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
+}
