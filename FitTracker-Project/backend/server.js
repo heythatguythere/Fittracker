@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const passport = require('passport');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
@@ -64,7 +65,14 @@ app.set('trust proxy', 1);
 app.use(session({ 
     secret: process.env.SESSION_SECRET, 
     resave: false, 
-    saveUninitialized: false, 
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        touchAfter: 24 * 3600, // lazy session update (24 hours)
+        crypto: {
+            secret: process.env.SESSION_SECRET
+        }
+    }),
     cookie: { 
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-domain
         secure: true, // Always true when sameSite is 'none'
