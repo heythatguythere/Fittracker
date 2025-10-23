@@ -135,7 +135,13 @@ app.get('/auth/google/callback', passport.authenticate('google', {
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
 
 // Auth check endpoints
-app.get('/api/auth/me', (req, res) => { 
+app.get('/api/auth/me', (req, res) => {
+    console.log('🔍 /api/auth/me called');
+    console.log('🔍 Session ID:', req.sessionID);
+    console.log('🔍 User:', req.user ? req.user.email : 'NO USER');
+    console.log('🔍 Session:', req.session);
+    console.log('🔍 Cookies:', req.headers.cookie);
+    
     if (req.user) {
         res.json(req.user); 
     } else {
