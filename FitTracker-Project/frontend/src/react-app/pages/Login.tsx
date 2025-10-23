@@ -99,7 +99,7 @@ export default function Login() {
                     {!isAdminView && (
                         <>
                             <div className="flex items-center my-6"><hr className="flex-grow" /><span className="mx-4 text-gray-400 text-sm">OR</span><hr className="flex-grow" /></div>
-                            <a href="/auth/google" className="w-full bg-white hover:bg-gray-50 border text-gray-700 px-6 py-3 rounded-lg font-medium transition-transform transform hover:scale-105 shadow-sm flex items-center justify-center space-x-3">
+                            <a href={`${import.meta.env.PROD ? 'https://fittracker-backend-gdgp.onrender.com' : 'http://localhost:5000'}/auth/google`} className="w-full bg-white hover:bg-gray-50 border text-gray-700 px-6 py-3 rounded-lg font-medium transition-transform transform hover:scale-105 shadow-sm flex items-center justify-center space-x-3">
                                 <Chrome className="h-5 w-5 text-blue-600" /><span>Continue with Google</span><ArrowRight className="h-4 w-4" />
                             </a>
                         </>
