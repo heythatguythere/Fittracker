@@ -54,7 +54,20 @@ app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1); 
-app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false, cookie: { sameSite: 'lax', secure: process.env.NODE_ENV === 'production', httpOnly: true, maxAge: 24 * 60 * 60 * 1000 }}));
+
+// Session configuration for cross-domain (Vercel + Render)
+app.use(session({ 
+    secret: process.env.SESSION_SECRET, 
+    resave: false, 
+    saveUninitialized: false, 
+    cookie: { 
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-domain
+        secure: true, // Always true when sameSite is 'none'
+        httpOnly: true, 
+        maxAge: 24 * 60 * 60 * 1000,
+        domain: process.env.NODE_ENV === 'production' ? undefined : undefined // Don't set domain to allow cross-domain
+    }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
