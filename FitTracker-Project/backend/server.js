@@ -118,12 +118,17 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { 
     failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
 }), (req, res) => {
+    console.log('🔐 Google OAuth callback - User:', req.user ? req.user.email : 'NO USER');
+    console.log('🔐 Session ID:', req.sessionID);
+    console.log('🔐 Session:', req.session);
+    
     // Save session before redirecting to ensure cookie is set
     req.session.save((err) => {
         if (err) {
-            console.error('Session save error:', err);
+            console.error('❌ Session save error:', err);
             return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login');
         }
+        console.log('✅ Session saved successfully, redirecting to frontend');
         res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard');
     });
 });
