@@ -93,8 +93,18 @@ app.get('/auth/google/callback', passport.authenticate('google', {
     failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
 }), (req, res) => res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard'));
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
-app.delete('/api/user', isAuth, async (req, res) => { try { await User.findByIdAndDelete(req.user._id); res.status(200).json({ msg: 'User deleted successfully' }); } catch (error) { res.status(500).json({ msg: 'Server error' }); } });
+
+// Auth check endpoints
+app.get('/api/auth/me', (req, res) => { 
+    if (req.user) {
+        res.json(req.user); 
+    } else {
+        res.status(401).json({ msg: 'Not authenticated' }); 
+    }
+});
 app.get('/api/current_user', isAuth, (req, res) => { res.send(req.user); });
+
+app.delete('/api/user', isAuth, async (req, res) => { try { await User.findByIdAndDelete(req.user._id); res.status(200).json({ msg: 'User deleted successfully' }); } catch (error) { res.status(500).json({ msg: 'Server error' }); } });
 app.get('/api/workouts', isAuth, async (req, res) => { try { const data = await Workout.find({ userId: req.user._id }).sort({ workout_date: -1 }); res.json(data); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
 app.post('/api/workouts', isAuth, async (req, res) => { try { const data = new Workout({ ...req.body, userId: req.user._id }); await data.save(); res.json(data); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
 app.put('/api/workouts/:id', isAuth, async (req, res) => { try { const d = await Workout.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { $set: req.body }, { new: true }); res.json(d); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
