@@ -118,19 +118,30 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { 
     failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
 }), (req, res) => {
+    console.log('🔐 Google OAuth callback - User:', req.user ? req.user.email : 'NO USER');
+    console.log('🔐 Session ID:', req.sessionID);
+    console.log('🔐 Session:', req.session);
+    
     // Save session before redirecting to ensure cookie is set
     req.session.save((err) => {
         if (err) {
-            console.error('Session save error:', err);
+            console.error('❌ Session save error:', err);
             return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login');
         }
+        console.log('✅ Session saved successfully, redirecting to frontend');
         res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard');
     });
 });
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
 
 // Auth check endpoints
-app.get('/api/auth/me', (req, res) => { 
+app.get('/api/auth/me', (req, res) => {
+    console.log('🔍 /api/auth/me called');
+    console.log('🔍 Session ID:', req.sessionID);
+    console.log('🔍 User:', req.user ? req.user.email : 'NO USER');
+    console.log('🔍 Session:', req.session);
+    console.log('🔍 Cookies:', req.headers.cookie);
+    
     if (req.user) {
         res.json(req.user); 
     } else {
@@ -160,9 +171,89 @@ app.get('/api/goals', isAuth, async (req, res) => { try { const g = await Goal.f
 app.post('/api/goals', isAuth, async (req, res) => { try { const g = new Goal({ ...req.body, userId: req.user._id }); await g.save(); res.status(201).json(g); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
 app.get('/api/templates', isAuth, async (req, res) => { try { const t = await WorkoutTemplate.find({ userId: req.user._id }); res.json(t); } catch (e) { res.status(500).json({ msg: 'Error' }); } });
 app.post('/api/templates', isAuth, async (req, res) => { try { const t = new WorkoutTemplate({ ...req.body, userId: req.user._id }); await t.save(); res.status(201).json(t); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
+app.put('/api/templates/:id', isAuth, async (req, res) => { try { const d = await WorkoutTemplate.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { $set: req.body }, { new: true }); res.json(d); } catch (e) { res.status(400).json({ msg: 'Error' }); } });
+app.delete('/api/templates/:id', isAuth, async (req, res) => { try { await WorkoutTemplate.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); res.status(200).json({ msg: 'Deleted' }); } catch (err) { res.status(500).json({ msg: 'Server error' }); } });
 app.get('/api/diet', isAuth, async (req, res) => { try { const entries = await DietEntry.find({ userId: req.user._id }).sort({ entry_date: -1 }); res.json(entries); } catch (err) { res.status(400).json({ msg: 'Error' }); } });
 app.post('/api/diet', isAuth, async (req, res) => { try { const newDietEntry = new DietEntry({ ...req.body, userId: req.user._id }); const savedEntry = await newDietEntry.save(); res.json(savedEntry); } catch (err) { res.status(400).json({ msg: 'Error' }); } });
 app.delete('/api/diet/:id', isAuth, async (req, res) => { try { await DietEntry.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); res.status(200).json({ msg: 'Deleted' }); } catch (err) { res.status(500).json({ msg: 'Error' }); } });
+
+// AI Chatbot endpoint
+app.post('/api/chatbot', isAuth, async (req, res) => {
+    try {
+        const { message, userProfile, recentWorkouts } = req.body;
+        
+        if (!process.env.GROQ_API_KEY) {
+            return res.status(500).json({ error: 'AI service not configured' });
+        }
+        
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        
+        // Build context about the user
+        const context = `
+User Profile: ${userProfile ? JSON.stringify({
+    name: userProfile.displayName,
+    age: userProfile.age,
+    weight: userProfile.weight_kg,
+    height: userProfile.height_cm,
+    fitnessGoal: userProfile.fitness_goal
+}) : 'Not provided'}
+
+Recent Workouts: ${recentWorkouts && recentWorkouts.length > 0 ? JSON.stringify(recentWorkouts.slice(0, 3)) : 'None'}
+
+User Question: ${message}
+
+You are an AI fitness coach. Provide helpful, motivating, and personalized advice based on the user's profile and workout history. Keep responses concise and actionable.
+`;
+        
+        // Try multiple models in order of preference
+        const models = [
+            'llama-3.3-70b-versatile',
+            'llama-3.1-70b-versatile', 
+            'llama-3.1-8b-instant',
+            'llama3-8b-8192'
+        ];
+        
+        let completion = null;
+        let lastError = null;
+        
+        for (const model of models) {
+            try {
+                completion = await groq.chat.completions.create({
+                    messages: [
+                        { 
+                            role: 'system', 
+                            content: 'You are a professional fitness coach and nutritionist. Provide helpful, encouraging, and evidence-based advice.' 
+                        },
+                        { role: 'user', content: context }
+                    ],
+                    model: model,
+                    temperature: 0.7,
+                    max_tokens: 500
+                });
+                break;
+            } catch (error) {
+                lastError = error;
+                continue;
+            }
+        }
+        
+        if (!completion) {
+            throw lastError || new Error('All AI models failed');
+        }
+        
+        const aiResponse = completion.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response. Please try again.';
+        
+        res.json({ response: aiResponse });
+        
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        res.status(500).json({ 
+            error: 'Failed to get AI response',
+            message: error.message 
+        });
+    }
+});
+
 app.post('/api/diet/suggestions', isAuth, async (req, res) => {
     try {
         const { profile, dietEntries } = req.body;
