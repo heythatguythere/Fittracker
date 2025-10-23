@@ -64,7 +64,14 @@ app.set('trust proxy', 1);
 app.use(session({ 
     secret: process.env.SESSION_SECRET, 
     resave: false, 
-    saveUninitialized: false, 
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        touchAfter: 24 * 3600, // lazy session update (24 hours)
+        crypto: {
+            secret: process.env.SESSION_SECRET
+        }
+    }),
     cookie: { 
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-domain
         secure: true, // Always true when sameSite is 'none'
