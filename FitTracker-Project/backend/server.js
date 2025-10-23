@@ -174,6 +174,84 @@ app.post('/api/templates', isAuth, async (req, res) => { try { const t = new Wor
 app.get('/api/diet', isAuth, async (req, res) => { try { const entries = await DietEntry.find({ userId: req.user._id }).sort({ entry_date: -1 }); res.json(entries); } catch (err) { res.status(400).json({ msg: 'Error' }); } });
 app.post('/api/diet', isAuth, async (req, res) => { try { const newDietEntry = new DietEntry({ ...req.body, userId: req.user._id }); const savedEntry = await newDietEntry.save(); res.json(savedEntry); } catch (err) { res.status(400).json({ msg: 'Error' }); } });
 app.delete('/api/diet/:id', isAuth, async (req, res) => { try { await DietEntry.findOneAndDelete({ _id: req.params.id, userId: req.user._id }); res.status(200).json({ msg: 'Deleted' }); } catch (err) { res.status(500).json({ msg: 'Error' }); } });
+
+// AI Chatbot endpoint
+app.post('/api/chatbot', isAuth, async (req, res) => {
+    try {
+        const { message, userProfile, recentWorkouts } = req.body;
+        
+        if (!process.env.GROQ_API_KEY) {
+            return res.status(500).json({ error: 'AI service not configured' });
+        }
+        
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        
+        // Build context about the user
+        const context = `
+User Profile: ${userProfile ? JSON.stringify({
+    name: userProfile.displayName,
+    age: userProfile.age,
+    weight: userProfile.weight_kg,
+    height: userProfile.height_cm,
+    fitnessGoal: userProfile.fitness_goal
+}) : 'Not provided'}
+
+Recent Workouts: ${recentWorkouts && recentWorkouts.length > 0 ? JSON.stringify(recentWorkouts.slice(0, 3)) : 'None'}
+
+User Question: ${message}
+
+You are an AI fitness coach. Provide helpful, motivating, and personalized advice based on the user's profile and workout history. Keep responses concise and actionable.
+`;
+        
+        // Try multiple models in order of preference
+        const models = [
+            'llama-3.3-70b-versatile',
+            'llama-3.1-70b-versatile', 
+            'llama-3.1-8b-instant',
+            'llama3-8b-8192'
+        ];
+        
+        let completion = null;
+        let lastError = null;
+        
+        for (const model of models) {
+            try {
+                completion = await groq.chat.completions.create({
+                    messages: [
+                        { 
+                            role: 'system', 
+                            content: 'You are a professional fitness coach and nutritionist. Provide helpful, encouraging, and evidence-based advice.' 
+                        },
+                        { role: 'user', content: context }
+                    ],
+                    model: model,
+                    temperature: 0.7,
+                    max_tokens: 500
+                });
+                break;
+            } catch (error) {
+                lastError = error;
+                continue;
+            }
+        }
+        
+        if (!completion) {
+            throw lastError || new Error('All AI models failed');
+        }
+        
+        const aiResponse = completion.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response. Please try again.';
+        
+        res.json({ response: aiResponse });
+        
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        res.status(500).json({ 
+            error: 'Failed to get AI response',
+            message: error.message 
+        });
+    }
+});
+
 app.post('/api/diet/suggestions', isAuth, async (req, res) => {
     try {
         const { profile, dietEntries } = req.body;
