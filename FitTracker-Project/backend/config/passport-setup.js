@@ -40,12 +40,14 @@ passport.use(new LocalStrategy({
   }
 ));
 
-// Google Strategy for OAuth - FIXED CALLBACK URL
+// Google Strategy for OAuth - Dynamic callback URL based on environment
 passport.use(
     new GoogleStrategy({
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: 'https://fittracker-gules.vercel.app/auth/google/callback',
+            callbackURL: process.env.NODE_ENV === 'production' 
+                ? 'https://fittracker-backend-gdgp.onrender.com/auth/google/callback'
+                : 'http://localhost:5000/auth/google/callback',
         },
         async (accessToken, refreshToken, profile, done) => {
             // Check if user already exists in our DB
