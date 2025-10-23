@@ -25,7 +25,17 @@ const app = express();
 // --- Middleware Setup ---
 require('./config/passport-setup'); 
 
-mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connected...')).catch(err => console.log(err));
+// MongoDB connection with better error handling
+mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+}).then(() => {
+    console.log('✅ MongoDB Connected...');
+}).catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    console.error('MONGO_URI is set:', !!process.env.MONGO_URI);
+    // Don't exit - let app start without MongoDB for debugging
+});
 
 // CORS configuration - allow all Vercel preview URLs
 const corsOptions = {
