@@ -120,6 +120,12 @@ app.get('/api/auth/me', (req, res) => {
         res.status(401).json({ msg: 'Not authenticated' }); 
     }
 });
+app.post('/api/auth/logout', (req, res, next) => { 
+    req.logout(function(err) { 
+        if (err) { return next(err); } 
+        req.session.destroy(() => res.status(200).json({ msg: "Logged out successfully" })); 
+    }); 
+});
 app.get('/api/current_user', isAuth, (req, res) => { res.send(req.user); });
 
 app.delete('/api/user', isAuth, async (req, res) => { try { await User.findByIdAndDelete(req.user._id); res.status(200).json({ msg: 'User deleted successfully' }); } catch (error) { res.status(500).json({ msg: 'Server error' }); } });
