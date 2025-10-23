@@ -72,29 +72,48 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1); 
 
 // Session configuration for cross-domain (Vercel + Render)
-// Create MongoDB session store with error handling
-const sessionStore = MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    touchAfter: 24 * 3600, // lazy session update (24 hours)
-    crypto: {
-        secret: process.env.SESSION_SECRET
-    },
-    mongoOptions: {
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
+// Check if MONGO_URI is set before creating session store
+let sessionStore;
+try {
+    if (!process.env.MONGO_URI) {
+        console.error('❌ MONGO_URI environment variable is not set!');
+        throw new Error('MONGO_URI not configured');
     }
-});
+    
+    if (!process.env.SESSION_SECRET) {
+        console.error('❌ SESSION_SECRET environment variable is not set!');
+        throw new Error('SESSION_SECRET not configured');
+    }
+    
+    // Create MongoDB session store with error handling
+    sessionStore = MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        touchAfter: 24 * 3600, // lazy session update (24 hours)
+        crypto: {
+            secret: process.env.SESSION_SECRET
+        },
+        mongoOptions: {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        }
+    });
 
-// Handle session store errors
-sessionStore.on('error', (error) => {
-    console.error('Session store error:', error);
-});
+    // Handle session store errors
+    sessionStore.on('error', (error) => {
+        console.error('⚠️ Session store error:', error);
+    });
+    
+    console.log('✅ Session store created successfully');
+} catch (error) {
+    console.error('❌ Failed to create session store:', error);
+    console.log('⚠️ Using memory store as fallback (sessions will not persist)');
+}
 
 app.use(session({ 
-    secret: process.env.SESSION_SECRET, 
+    secret: process.env.SESSION_SECRET || 'fallback-secret-change-me', 
     resave: false, 
     saveUninitialized: false,
-    store: sessionStore,
+    store: sessionStore, // Will be undefined if creation failed, express will use MemoryStore
     cookie: { 
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-domain
         secure: true, // Always true when sameSite is 'none'
