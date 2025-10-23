@@ -1033,5 +1033,14 @@ app.get('/api/friends/:friendId/progress', isAuth, async (req, res) => {
     } catch (error) { console.error(error); res.status(500).json({ error: 'Server error fetching friend progress' }); }
 });
 
+// --- Global Error Handler (must be last middleware) ---
+app.use((err, req, res, next) => {
+    console.error('❌ Unhandled error:', err);
+    res.status(500).json({ 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message 
+    });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
