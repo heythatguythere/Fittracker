@@ -62,17 +62,29 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1); 
 
 // Session configuration for cross-domain (Vercel + Render)
+// Create MongoDB session store with error handling
+const sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    touchAfter: 24 * 3600, // lazy session update (24 hours)
+    crypto: {
+        secret: process.env.SESSION_SECRET
+    },
+    mongoOptions: {
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+    }
+});
+
+// Handle session store errors
+sessionStore.on('error', (error) => {
+    console.error('Session store error:', error);
+});
+
 app.use(session({ 
     secret: process.env.SESSION_SECRET, 
     resave: false, 
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGO_URI,
-        touchAfter: 24 * 3600, // lazy session update (24 hours)
-        crypto: {
-            secret: process.env.SESSION_SECRET
-        }
-    }),
+    store: sessionStore,
     cookie: { 
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-domain
         secure: true, // Always true when sameSite is 'none'
@@ -1019,6 +1031,15 @@ app.get('/api/friends/:friendId/progress', isAuth, async (req, res) => {
             dietEntries
         });
     } catch (error) { console.error(error); res.status(500).json({ error: 'Server error fetching friend progress' }); }
+});
+
+// --- Global Error Handler (must be last middleware) ---
+app.use((err, req, res, next) => {
+    console.error('❌ Unhandled error:', err);
+    res.status(500).json({ 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message 
+    });
 });
 
 const PORT = process.env.PORT || 5000;
