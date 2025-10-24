@@ -14,6 +14,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       const errorParam = searchParams.get('error');
+      const tokenParam = searchParams.get('token');
       
       // Check for error in URL
       if (errorParam) {
@@ -21,6 +22,8 @@ export default function AuthCallback() {
           setError('Google authentication failed. Please try again.');
         } else if (errorParam === 'session_failed') {
           setError('Session creation failed. Please try again.');
+        } else if (errorParam === 'no_user') {
+          setError('No user account found. Please try again.');
         } else {
           setError('Authentication error. Please try again.');
         }
@@ -28,20 +31,49 @@ export default function AuthCallback() {
         return;
       }
 
+      // If we have a token, exchange it for a session
+      if (tokenParam) {
+        try {
+          setStatus('Completing authentication...');
+          
+          // Exchange the temporary token for a session
+          const exchangeResponse = await axios.post('/api/auth/exchange-token', {
+            token: tokenParam
+          }, {
+            withCredentials: true
+          });
+          
+          if (exchangeResponse.data.success && exchangeResponse.data.user) {
+            setStatus('Success! Redirecting to dashboard...');
+            // Update auth context with user data
+            login(exchangeResponse.data.user);
+            
+            // Wait a moment for state to update, then redirect
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 500);
+          } else {
+            throw new Error('Token exchange failed');
+          }
+        } catch (err) {
+          console.error('Token exchange error:', err);
+          setError('Failed to complete authentication. Redirecting to login...');
+          setTimeout(() => navigate('/login'), 3000);
+        }
+        return;
+      }
+
+      // Fallback: try checking if already authenticated (for email/password login)
       try {
         setStatus('Verifying your account...');
         
-        // Check if user is authenticated by calling /api/auth/me
         const response = await axios.get('/api/auth/me', { 
           withCredentials: true 
         });
         
         if (response.data) {
           setStatus('Success! Redirecting to dashboard...');
-          // Update auth context with user data
           login(response.data);
-          
-          // Wait a moment for state to update, then redirect
           setTimeout(() => {
             navigate('/dashboard');
           }, 500);
