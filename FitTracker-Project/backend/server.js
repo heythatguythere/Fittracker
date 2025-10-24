@@ -7,6 +7,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { marked } = require('marked');
 const Groq = require('groq-sdk');
 require('dotenv').config();
