@@ -180,7 +180,6 @@ app.get('/auth/google/callback', passport.authenticate('google', {
         console.log('✅ Session saved, creating temp token for cross-device');
         
         // Create a temporary one-time token (for cross-device/cross-origin OAuth)
-        const crypto = require('crypto');
         const tempToken = crypto.randomBytes(32).toString('hex');
         
         // Store user ID with token (expires in 2 minutes)
