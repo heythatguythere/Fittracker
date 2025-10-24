@@ -25,7 +25,17 @@ const app = express();
 // --- Middleware Setup ---
 require('./config/passport-setup'); 
 
-mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connected...')).catch(err => console.log(err));
+// MongoDB connection with better error handling
+mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+}).then(() => {
+    console.log('✅ MongoDB Connected...');
+}).catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    console.error('MONGO_URI is set:', !!process.env.MONGO_URI);
+    // Don't exit - let app start without MongoDB for debugging
+});
 
 // CORS configuration - allow all Vercel preview URLs
 const corsOptions = {
@@ -62,29 +72,48 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('trust proxy', 1); 
 
 // Session configuration for cross-domain (Vercel + Render)
-// Create MongoDB session store with error handling
-const sessionStore = MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    touchAfter: 24 * 3600, // lazy session update (24 hours)
-    crypto: {
-        secret: process.env.SESSION_SECRET
-    },
-    mongoOptions: {
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
+// Check if MONGO_URI is set before creating session store
+let sessionStore;
+try {
+    if (!process.env.MONGO_URI) {
+        console.error('❌ MONGO_URI environment variable is not set!');
+        throw new Error('MONGO_URI not configured');
     }
-});
+    
+    if (!process.env.SESSION_SECRET) {
+        console.error('❌ SESSION_SECRET environment variable is not set!');
+        throw new Error('SESSION_SECRET not configured');
+    }
+    
+    // Create MongoDB session store with error handling
+    sessionStore = MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        touchAfter: 24 * 3600, // lazy session update (24 hours)
+        crypto: {
+            secret: process.env.SESSION_SECRET
+        },
+        mongoOptions: {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        }
+    });
 
-// Handle session store errors
-sessionStore.on('error', (error) => {
-    console.error('Session store error:', error);
-});
+    // Handle session store errors
+    sessionStore.on('error', (error) => {
+        console.error('⚠️ Session store error:', error);
+    });
+    
+    console.log('✅ Session store created successfully');
+} catch (error) {
+    console.error('❌ Failed to create session store:', error);
+    console.log('⚠️ Using memory store as fallback (sessions will not persist)');
+}
 
 app.use(session({ 
-    secret: process.env.SESSION_SECRET, 
+    secret: process.env.SESSION_SECRET || 'fallback-secret-change-me', 
     resave: false, 
     saveUninitialized: false,
-    store: sessionStore,
+    store: sessionStore, // Will be undefined if creation failed, express will use MemoryStore
     cookie: { 
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-domain
         secure: true, // Always true when sameSite is 'none'
@@ -128,7 +157,7 @@ app.post('/auth/login', (req, res, next) => { passport.authenticate('local', (er
 app.post('/auth/admin/login', (req, res, next) => { passport.authenticate('local', (err, user, info) => { if (err) { return next(err); } if (!user) { return res.status(401).json({ msg: info.message || 'Invalid credentials.' }); } if (user.role !== 'admin') { return res.status(403).json({ msg: 'Forbidden.' }); } req.logIn(user, (err) => { if (err) { return next(err); } return res.json({ msg: 'Admin logged in successfully!', user: req.user }); }); })(req, res, next); });
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/auth/google/callback', passport.authenticate('google', { 
-    failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
+    failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=auth_failed' : 'http://localhost:5173/login?error=auth_failed' 
 }), (req, res) => {
     console.log('🔐 Google OAuth callback - User:', req.user ? req.user.email : 'NO USER');
     console.log('🔐 Session ID:', req.sessionID);
@@ -138,10 +167,14 @@ app.get('/auth/google/callback', passport.authenticate('google', {
     req.session.save((err) => {
         if (err) {
             console.error('❌ Session save error:', err);
-            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login');
+            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=session_failed' : 'http://localhost:5173/login?error=session_failed');
         }
-        console.log('✅ Session saved successfully, redirecting to frontend');
-        res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard');
+        console.log('✅ Session saved successfully');
+        console.log('🔐 Cookie being set:', req.sessionID);
+        
+        // Use auth callback page to properly set cookie before redirecting
+        const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app' : 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/auth/callback?session=${req.sessionID}`);
     });
 });
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
