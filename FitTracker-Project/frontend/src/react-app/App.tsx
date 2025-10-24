@@ -87,6 +87,7 @@ function AppRoutes() {
             {/* Public Routes (accessible to everyone) */}
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             
             {/* Protected User Routes (require a user to be logged in) */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
