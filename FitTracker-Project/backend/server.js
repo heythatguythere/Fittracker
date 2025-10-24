@@ -163,51 +163,30 @@ app.get('/auth/google/callback', passport.authenticate('google', {
     console.log('🔐 Session ID:', req.sessionID);
     console.log('🔐 Session passport:', req.session?.passport);
     console.log('🔐 Cookies in request:', req.headers.cookie);
+    console.log('🔐 User object:', JSON.stringify(req.user));
     
     if (!req.user) {
         console.error('❌ No user in OAuth callback!');
         return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=no_user' : 'http://localhost:5173/login?error=no_user');
     }
     
-    // Force regenerate session to ensure cookie is fresh
-    req.session.regenerate((regenerateErr) => {
-        if (regenerateErr) {
-            console.error('❌ Session regenerate error:', regenerateErr);
+    // Save session
+    req.session.save((err) => {
+        if (err) {
+            console.error('❌ Session save error:', err);
+            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=session_failed' : 'http://localhost:5173/login?error=session_failed');
         }
         
-        // Manually set passport user in new session
-        req.session.passport = { user: req.user._id };
+        console.log('✅ Session saved successfully');
+        console.log('🔐 Session ID after save:', req.sessionID);
+        console.log('🔐 Session data:', req.session);
+        console.log('🍪 Response headers will include cookie');
         
-        // Save session with callback
-        req.session.save((err) => {
-            if (err) {
-                console.error('❌ Session save error:', err);
-                return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=session_failed' : 'http://localhost:5173/login?error=session_failed');
-            }
-            
-            console.log('✅ Session saved successfully');
-            console.log('🔐 New Session ID:', req.sessionID);
-            console.log('🔐 Session data:', req.session);
-            
-            // Set cookie explicitly in response header as backup
-            const cookieName = 'connect.sid';
-            const cookieValue = `s:${req.sessionID}`;
-            const cookieOptions = [
-                `${cookieName}=${cookieValue}`,
-                'Path=/',
-                'HttpOnly',
-                'Secure',
-                'SameSite=None',
-                `Max-Age=${24 * 60 * 60}`  // 24 hours
-            ].join('; ');
-            
-            res.setHeader('Set-Cookie', cookieOptions);
-            console.log('🍪 Setting cookie explicitly:', cookieOptions);
-            
-            // Use auth callback page
-            const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app' : 'http://localhost:5173';
-            res.redirect(`${frontendUrl}/auth/callback?success=true`);
-        });
+        // CRITICAL: On cross-device, just redirect to dashboard
+        // The session cookie is set by express-session middleware automatically
+        // The frontend will check auth status on dashboard load
+        const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app' : 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/dashboard`);
     });
 });
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
