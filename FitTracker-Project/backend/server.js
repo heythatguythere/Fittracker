@@ -157,7 +157,7 @@ app.post('/auth/login', (req, res, next) => { passport.authenticate('local', (er
 app.post('/auth/admin/login', (req, res, next) => { passport.authenticate('local', (err, user, info) => { if (err) { return next(err); } if (!user) { return res.status(401).json({ msg: info.message || 'Invalid credentials.' }); } if (user.role !== 'admin') { return res.status(403).json({ msg: 'Forbidden.' }); } req.logIn(user, (err) => { if (err) { return next(err); } return res.json({ msg: 'Admin logged in successfully!', user: req.user }); }); })(req, res, next); });
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/auth/google/callback', passport.authenticate('google', { 
-    failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login' 
+    failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=auth_failed' : 'http://localhost:5173/login?error=auth_failed' 
 }), (req, res) => {
     console.log('🔐 Google OAuth callback - User:', req.user ? req.user.email : 'NO USER');
     console.log('🔐 Session ID:', req.sessionID);
@@ -167,10 +167,14 @@ app.get('/auth/google/callback', passport.authenticate('google', {
     req.session.save((err) => {
         if (err) {
             console.error('❌ Session save error:', err);
-            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login' : 'http://localhost:5173/login');
+            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=session_failed' : 'http://localhost:5173/login?error=session_failed');
         }
-        console.log('✅ Session saved successfully, redirecting to frontend');
-        res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/dashboard' : 'http://localhost:5173/dashboard');
+        console.log('✅ Session saved successfully');
+        console.log('🔐 Cookie being set:', req.sessionID);
+        
+        // Use auth callback page to properly set cookie before redirecting
+        const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app' : 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/auth/callback?session=${req.sessionID}`);
     });
 });
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
