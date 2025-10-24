@@ -18,7 +18,7 @@ import FriendsPage from "./pages/Friends";
 import AdminDashboardPage from "./pages/AdminDashboard";
 
 // --- Helper Component: Loading Spinner ---
-// A consistent spinner to show while checking authentication status.
+// A consistent spinner to show while checking authentication status
 const LoadingSpinner = () => (
     <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
@@ -118,4 +118,4 @@ export default function App() {
             </AuthProvider>
         </ThemeProvider>
     );
-}
+}// Build timestamp: Fri Oct 24 03:46:14 AM UTC 2025
