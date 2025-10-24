@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 // Import all of your page components from their respective files
 import HomePage from "./pages/Home";
 import LoginPage from "./pages/Login";
+import AuthCallbackPage from "./pages/AuthCallback";
 import DashboardPage from "./pages/Dashboard";
 import WorkoutsPage from "./pages/Workouts";
 import MeasurementsPage from "./pages/Measurements";
