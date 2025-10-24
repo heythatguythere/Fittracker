@@ -156,38 +156,112 @@ app.post('/auth/register', async (req, res) => { try { const { email, password }
 app.post('/auth/login', (req, res, next) => { passport.authenticate('local', (err, user, info) => { if (err) { return next(err); } if (!user) { return res.status(401).json({ msg: info.message || 'Invalid credentials.' }); } req.logIn(user, (err) => { if (err) { return next(err); } return res.json({ msg: 'Logged in successfully!', user: req.user }); }); })(req, res, next); });
 app.post('/auth/admin/login', (req, res, next) => { passport.authenticate('local', (err, user, info) => { if (err) { return next(err); } if (!user) { return res.status(401).json({ msg: info.message || 'Invalid credentials.' }); } if (user.role !== 'admin') { return res.status(403).json({ msg: 'Forbidden.' }); } req.logIn(user, (err) => { if (err) { return next(err); } return res.json({ msg: 'Admin logged in successfully!', user: req.user }); }); })(req, res, next); });
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+// Temporary tokens for cross-device OAuth (expires after 2 minutes)
+const tempAuthTokens = new Map();
+
 app.get('/auth/google/callback', passport.authenticate('google', { 
     failureRedirect: process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=auth_failed' : 'http://localhost:5173/login?error=auth_failed' 
 }), (req, res) => {
     console.log('🔐 Google OAuth callback - User:', req.user ? req.user.email : 'NO USER');
     console.log('🔐 Session ID:', req.sessionID);
-    console.log('🔐 Session passport:', req.session?.passport);
-    console.log('🔐 Cookies in request:', req.headers.cookie);
-    console.log('🔐 User object:', JSON.stringify(req.user));
     
     if (!req.user) {
         console.error('❌ No user in OAuth callback!');
         return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=no_user' : 'http://localhost:5173/login?error=no_user');
     }
     
-    // Save session
+    // Save session first
     req.session.save((err) => {
         if (err) {
             console.error('❌ Session save error:', err);
-            return res.redirect(process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app/login?error=session_failed' : 'http://localhost:5173/login?error=session_failed');
         }
         
-        console.log('✅ Session saved successfully');
-        console.log('🔐 Session ID after save:', req.sessionID);
-        console.log('🔐 Session data:', req.session);
-        console.log('🍪 Response headers will include cookie');
+        console.log('✅ Session saved, creating temp token for cross-device');
         
-        // CRITICAL: On cross-device, just redirect to dashboard
-        // The session cookie is set by express-session middleware automatically
-        // The frontend will check auth status on dashboard load
+        // Create a temporary one-time token (for cross-device/cross-origin OAuth)
+        const crypto = require('crypto');
+        const tempToken = crypto.randomBytes(32).toString('hex');
+        
+        // Store user ID with token (expires in 2 minutes)
+        tempAuthTokens.set(tempToken, {
+            userId: req.user._id,
+            email: req.user.email,
+            createdAt: Date.now()
+        });
+        
+        // Clean up expired tokens (older than 2 minutes)
+        for (const [token, data] of tempAuthTokens.entries()) {
+            if (Date.now() - data.createdAt > 120000) {
+                tempAuthTokens.delete(token);
+            }
+        }
+        
+        console.log('🎫 Created temp token for user:', req.user.email);
+        
+        // Redirect with temp token - frontend will exchange it for a session
         const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://fittracker-gules.vercel.app' : 'http://localhost:5173';
-        res.redirect(`${frontendUrl}/dashboard`);
+        res.redirect(`${frontendUrl}/auth/callback?token=${tempToken}`);
     });
+});
+
+// Exchange temp token for session (called by frontend after OAuth redirect)
+app.post('/api/auth/exchange-token', async (req, res) => {
+    const { token } = req.body;
+    
+    console.log('🎫 Token exchange request, token:', token ? 'provided' : 'missing');
+    
+    if (!token) {
+        return res.status(400).json({ error: 'Token required' });
+    }
+    
+    const tokenData = tempAuthTokens.get(token);
+    
+    if (!tokenData) {
+        console.error('❌ Invalid or expired token');
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    
+    // Check if token is expired (2 minutes)
+    if (Date.now() - tokenData.createdAt > 120000) {
+        tempAuthTokens.delete(token);
+        console.error('❌ Token expired');
+        return res.status(401).json({ error: 'Token expired' });
+    }
+    
+    try {
+        // Get user from database
+        const user = await User.findById(tokenData.userId);
+        
+        if (!user) {
+            console.error('❌ User not found for token');
+            tempAuthTokens.delete(token);
+            return res.status(401).json({ error: 'User not found' });
+        }
+        
+        // Delete token (one-time use)
+        tempAuthTokens.delete(token);
+        
+        // Log user in (create session)
+        req.logIn(user, (err) => {
+            if (err) {
+                console.error('❌ Login error:', err);
+                return res.status(500).json({ error: 'Failed to create session' });
+            }
+            
+            console.log('✅ Token exchanged, user logged in:', user.email);
+            console.log('🔐 New Session ID:', req.sessionID);
+            
+            // Return user data
+            res.json({ 
+                success: true,
+                user: user
+            });
+        });
+    } catch (error) {
+        console.error('❌ Token exchange error:', error);
+        tempAuthTokens.delete(token);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 app.get('/auth/logout', (req, res, next) => { req.logout(function(err) { if (err) { return next(err); } req.session.destroy(() => res.status(200).send({ msg: "Logged out" })); }); });
 
